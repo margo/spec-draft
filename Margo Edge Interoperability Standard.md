@@ -1,1184 +1,1141 @@
-# ISO/IEC 23053 Margo Edge Interoperability Standard
-## Framework for interoperable orchestration of edge applications and devices in industrial automation ecosystems
+# Margo Edge Interoperability Standard
 
-### Status: Pre-draft Specification (Work in Progress)
-### Version: 1.0-alpha1
-### Date: 2025-07-09
-
----
-
-## Foreword
-
-This document specifies the Margo Edge Interoperability Standard, an open framework for enabling interoperability between edge applications, edge devices, and edge orchestration software in industrial automation ecosystems. This standard is being developed under the auspices of the Linux Foundation's Joint Development Foundation.
-
-**WARNING**: This is a pre-draft specification and SHALL NOT be implemented in production systems or referenced as authoritative. The specification is under active development and subject to substantial changes.
+**Version:** 1.0 (Draft)  
+**Date:** July 2025  
+**Status:** Work in Progress - Do Not Implement
 
 ---
 
-## 1 Scope
+## 1. Introduction
 
-### 1.1 General
+### 1.1 What is Margo?
 
-This International Standard specifies mechanisms for interoperability between edge applications, edge devices, and edge orchestration software in industrial automation ecosystems. It defines:
+The Margo initiative is an open collaboration between like-minded organizations and individuals, sharing a common vision: deliver edge interoperability for industrial automation ecosystems. Margo is hosted by the Linux Foundation.
 
-a) Standardized interfaces for edge device management and workload orchestration
-b) Application packaging and deployment specifications
-c) Fleet management and observability frameworks
-d) Compliance requirements and testing procedures
+### 1.2 Mission Statement
 
-### 1.2 Application Domain
+Margo's mission emphasizes unlocking innovation barriers in industrial automation through edge interoperability. This is achieved through creation of a reference implementation, open standard, and compliance testing toolkit to facilitate the interoperable orchestration of edge applications and devices. The Margo initiative aims to accelerate digital transformation by simplifying the deployment, scalability, and operation of industrial solutions, thereby enabling organizations to innovate and grow more efficiently.
 
-This standard applies to:
-- Industrial automation systems utilizing edge computing
-- Multi-vendor edge device deployments
-- Containerized workload orchestration at the edge
-- Fleet management systems for industrial environments
+### 1.3 Addressing Industrial Edge Pain Points
 
-### 1.3 Out of Scope
+Because of recent trends in industrial manufacturing, lifecycle management is becoming a challenge because of the massive increase of compute devices and apps from a multitude of suppliers deployed in plants. Margo intends to reduce the complexity of maintaining and operating such an infrastructure at scale in a multi-vendor environment.
 
-This standard does not cover:
-- Business logic implementation
-- Production process monitoring
-- Industrial machinery control protocols
-- Sensor data acquisition standards
+### 1.4 Applying an Open Approach
 
----
+While Margo intends to address innovation barriers, this cannot be done without widespread collaboration and interaction with peer communities.
 
-## 2 Normative References
+### 1.5 Core Deliverables
 
-The following documents are referred to in the text in such a way that some or all of their content constitutes requirements of this document:
+The core deliverables for Margo address the mission to enable interoperability at scale:
+- **Reference Implementation**
+- **Open Standard** 
+- **Open Compliance Test Suite**
 
-- RFC 2119, Key words for use in RFCs to Indicate Requirement Levels
-- RFC 3339, Date and Time on the Internet: Timestamps
-- Open Container Initiative (OCI) Distribution Specification v1.0
-- OpenTelemetry Specification v1.0
-- Kubernetes API v1.24+
+## 2. Scope
+
+This specification defines the technical requirements and interfaces for achieving edge interoperability in industrial automation environments. It covers:
+
+- Application packaging and deployment standards
+- Device management and orchestration interfaces
+- Fleet management protocols and APIs
+- Workload observability and monitoring requirements
+- Security and authentication mechanisms
+- Compliance testing frameworks
+
+## 3. Normative References
+
+The following documents are referred to in this specification:
+- ISO/IEC 20922:2016 (MQTT)
+- OCI Container Specification
+- Kubernetes API Specification
+- Helm Chart Specification v3
 - Docker Compose Specification
-- Helm v3 Chart Specification
-- OpenGitOps v1.0 Principles
+- OpenTelemetry Specification
+- OpenGitOps Specification
 
----
+## 4. Terms and Definitions
 
-## 3 Terms and Definitions
+### 4.1 Core Concepts
 
-For the purposes of this document, the following terms and definitions apply:
+**Interoperability:** For Margo, interoperability is about achieving the following:
+- Defining a common approach for packaging Components so they can be deployed as Workloads to any compatible Margo-compliant Edge Compute Devices via any Margo-compliant Workload Fleet Manager
+- Defining a common approach for packaging device software and firmware updates so they can be deployed to any Margo-compliant Edge Compute Devices via any Margo-compliant Device Fleet Manager
+- Defining a common API to enable communication between any Margo-compliant Edge Compute Devices and any Margo-compliant fleet management software
+- Defining a common approach for collecting and transmitting diagnostics and observability data from a Margo-compliant Edge Compute Device
 
-### 3.1 edge compute device
-compute hardware that hosts Margo compliant workloads at the edge of industrial networks
+**Orchestration:** For Margo, orchestration is about the deployment of Workloads and device software updates to Margo-compliant Edge Compute Devices via Margo-compliant fleet management software. Margo depends on container orchestration platforms such as Kubernetes, Docker and Podman existing on the Edge Compute Devices and is not an attempt to duplicate what these platforms provide.
 
-### 3.2 workload
-software deployed to and running on Margo compliant edge compute devices
+**Fleet Management:** Fleet Management represents a concept or pattern that enables users to manage one to many set of workloads and devices the customer owns. Many strategies exist within fleet management such as canary deployments, rolling deployments, and many others.
 
-### 3.3 workload fleet manager
-centralized software solution for managing workload lifecycle across multiple edge devices
+**State Seeking:** The state seeking methodology, adopted via Margo, is enabled first by the Workload Fleet Manager when it establishes the "Desired state". The Edge Device then reconciles its "Current state" with the "Desired state" provided by the Fleet Manager and reports the status.
 
-### 3.4 application package
-distribution mechanism containing application description, resources, and deployment artifacts
+**Provider Model:** The provider model within Margo describes a service that is able to orchestrate or implement the desired state within the Edge Device. Current providers supported: Helm Client, Compose Client.
 
-### 3.5 deployment profile
-configuration specification targeting specific deployment types (Helm v3 or Compose)
+### 4.2 Technical Terms
 
-### 3.6 desired state
-declarative specification of the intended configuration for edge devices and workloads
+**Application:** An application is a collection of one, or more, Components, as defined by an Application Description, and bundled within an application package.
 
-### 3.7 application registry
-Git-based repository for sharing application packages
+**Application Package:** An Application Package is used to distribute an application. According to the specification, it is a folder in a Git repository referenced by URL, which contains the Application Description (that refers to contained and deployable Components) as well as associated resources (e.g., icons).
 
-### 3.8 interoperability
-capability of diverse systems and organizations to work together seamlessly
+**Component:** A Component is a piece of software tailored to be deployed within a customer's environment on an Edge Compute Device. Currently Margo-supported components are:
+- Helm Chart
+- Compose Archive
 
-### 3.9 observability
-collection and analysis of information produced by a system to monitor its internal behavior
+**Workload:** A Workload is an instance of a Component running within a customer's environment on an Edge Compute Device.
 
-### 3.10 plant operator
-individual or team responsible for keeping a manufacturing process operational
+**Edge Compute Device:** Edge Compute Devices are represented by compute hardware that runs within the customer's environment to enable the system with Margo Compliant Workloads. Edge Compute Devices host the Margo compliant management agents, container orchestration platform, and device operating systems. Margo Edge Compute Devices are defined by the roles they can facilitate within the Margo Architecture.
 
----
+**Workload Fleet Manager:** Workload Fleet Manager (WFM) represents a software offering that enables End Users to configure, deploy, and manage edge Workloads as a fleet on their registered Edge Devices.
 
-## 4 Symbols and Abbreviated Terms
+**Workload Fleet Management Client:** The Workload Fleet Management Agent is a service that runs on the Edge Compute Device which communicates with the Workload Fleet Manager to receive Components that will be instantiated as Workloads and configurations to be applied on the Edge Compute Device.
 
-| **Acronym** | **Full Form/Definition** |
-|-------------|--------------------------|
-| API | Application Programming Interface |
-| CRD | Custom Resource Definition |
-| GitOps | Git Operations |
-| JDF | Joint Development Foundation |
-| OCI | Open Container Initiative |
-| OT | Operational Technology |
-| OTLP | OpenTelemetry Protocol |
-| PGP | Pretty Good Privacy |
-| SDK | Software Development Kit |
-| UI | User Interface |
-| UUID | Universally Unique Identifier |
-| WOS | Workload Orchestration Software |
-| YAML | YAML Ain't Markup Language |
+**Device Fleet Manager:** Device Fleet Manager (DFM) represents a software offering that enables End Users to onboard, delete, and maintain Edge Compute Devices within the ecosystem. This software is utilized in conjunction with the Workload Fleet Manager software to provide users with the features required to manage their Edge Device along with Workloads running on them.
 
----
+**Device Fleet Management Client:** The Device Fleet Management Agent is a service that runs on the Edge Compute Device which communicates with the Device Fleet Manager to receive device configuration to be applied on the Edge Compute Device.
 
-## 5 Conformance
+**Application Registry:** An Application Registry holds Application Packages. It is used by developers to make their applications available. An Application Registries MUST be a Git repository. Workload Fleet Managers cannot access Application Registries directly, they can only access Application Catalogs.
 
-### 5.1 General Requirements
+**Application Catalog:** An Application Catalog holds Application Packages that were preselected to be install-ready for the edge environment of a Workload Fleet Manager to deploy them to managed Edge Compute Devices. An Application Catalog obtains the offered Applications from one or more Application Registries.
 
-Conformance to this standard requires the implementation of all mandatory requirements indicated by the keywords "SHALL" and "MUST" as defined in RFC 2119.
+**Component Registry:** A Component Registry holds Components (e.g., Helm Charts and Compose Archives) for Application Packages. When an application gets deployed through a Workload Fleet Manager, the components (linked within an Application Description) are requested from the Component Registry. This can be implemented, for example, as an OCI Registry.
 
-### 5.2 Conformance Levels
+**Workload Marketplace:** Workload Marketplace is the location where end users purchase the rights to access Workloads from a vendor. Functional Requirements include: providing users with a list of Workloads available for purchase, enabling users to purchase access rights to a Workload, and enabling users with the meta data to access associated Workload Registries/Repositories. Note: The Workload Marketplace component is out of scope for Project Margo.
 
-Three conformance levels are defined:
+## 5. Personas and Use Cases
 
-a) **Device Conformance**: Edge compute devices implementing required interfaces
-b) **Application Conformance**: Applications packaged according to specifications
-c) **Orchestration Conformance**: Fleet management systems implementing required APIs
+### 5.1 Persona Categories
 
-### 5.3 Compliance Testing
+#### 5.1.1 End Users
+- Evaluates the best-in-class products offered by the suppliers
+- Consumes products provided by the suppliers
+- Assembles multiple vendor's products into a productive automation system
 
-All implementations claiming conformance SHALL pass the Margo Compliance Test Suite as specified in Annex E.
+#### 5.1.2 Suppliers
+- Contribute knowledge and expertise to the specification sections relevant to their business
+- Builds products compliant with the Margo specification
+- Markets and sells their products to end users
 
----
+### 5.2 Detailed Persona Definitions
 
-## 6 Overview and General Principles
+#### 5.2.1 End User Personas
 
-### 6.1 Mission Statement
+**OT User**
+Consumer of functionality provided by the application vendors to run critical and non-critical business functions, or to improve business efficiency
 
-Margo's mission emphasizes unlocking innovation barriers in industrial automation through edge interoperability. This is achieved through the creation of a reference implementation, an open standard, and a compliance testing toolkit to facilitate the interoperable orchestration of edge applications and devices.
+**OT Architect**
+Creates and enforces standards across OT deployment locations or sites for greater supportability and consistency
 
-### 6.2 Core Principles
+**Integrator**
+Optional persona, external to the organization of the other end user personas, but tasked with assembling and installing hardware and software provided by the suppliers
 
-#### 6.2.1 Openness and Flexibility
-Users SHALL have the freedom to choose solutions matching their business needs without vendor lock-in.
+**IT Service Provider**
+Provides "IT-like" services, such as connectivity, backup and restore, automation, security and auditing, within the End User's OT environment
 
-#### 6.2.2 Simplification
-The framework SHALL reduce time to market and simplify continuous improvement and maintenance.
+#### 5.2.2 Supplier Personas
 
-#### 6.2.3 Innovation Enablement
-The system SHALL enable agile systems matching modern business speed requirements.
+**Workload Supplier**
+Provides an application that performs some desired function, such as computer vision, software-defined control, etc, which is deployed to device via a Workload Fleet Manager
 
-#### 6.2.4 IT-OT Convergence
-The standard SHALL bridge modern IT solutions with operational technology requirements.
+**Fleet Management Supplier**
+Provides a software package that enables End Users to manage their workloads and/or devices the workloads run on via Fleet management patterns
 
-### 6.3 Industrial Edge Pain Points Addressed
+**Device Supplier**
+Provides hardware resources, such as CPU and memory, along with lifecycle support, such as firmware and BIOS updates
 
-#### 6.3.1 Workforce Scarcity
-The framework addresses the challenge where 75% of industrial companies experience talent shortages by reducing complexity of maintaining and operating infrastructure at scale.
+**Platform Supplier**
+Provides operating system level software to abstract hardware resources, and optionally, container orchestration software on top of the operating system layer
 
-#### 6.3.2 Lifecycle Management Complexity
-The standard simplifies deployment, scalability, and operation of industrial solutions in environments with massive increases in compute devices and applications.
+### 5.3 Multiple Personas per Entity
 
-#### 6.3.3 Multi-Vendor Environment Challenges
-The framework eliminates lengthy and costly bespoke integration work through standardized interfaces.
+In some cases, a single entity, such as a company or organization, may provide multiple roles within the Margo enabled ecosystem:
 
-#### 6.3.4 IT vs OT Architecture Friction
-The standard bridges centrally managed, cloud-based IT solutions with decentralized, edge-based OT architectures.
+#### 5.3.1 Combination of Device Supplier and Platform Supplier
+A supplier may be both the device supplier (the underlying hardware) and the platform provider, selling a "ready to deploy" offering for consumption by end users.
 
-### 6.4 Open Approach Philosophy
+#### 5.3.2 Combination of Workload Supplier and OT User
+A persona in the end user category, such as an OT user, could also internally develop an application, and leverage the Margo specification to ease deployment to devices in their environment.
 
-#### 6.4.1 Leverage Existing Standards
-Margo SHALL adopt existing standards and technologies where possible, embracing proven IT standards and enhancing them as needed for industrial use cases.
+## 6. System Architecture Overview
 
-#### 6.4.2 Upstream Contributions
-The project SHALL make upstream contributions to relevant projects to ensure solutions benefit the broader ecosystem.
+### 6.1 Software Composition Overview
 
-#### 6.4.3 Industry Focus
-Common building blocks SHALL be provided for the OT landscape without reinventing existing solutions.
+Applications can be found in completely different stages:
+- **"Application Packaging":** application has been prepared and made ready for deployment
+- **"Application Deployment" (AKA Runtime):** application has been made available and accessible on the device
 
----
+Note: Logically there is another intermediate stage: "Application Staging". This is the stage in which the application is set up, configured, and made available for use to the device, but has not yet been deployed (started) to be used. As of now this stage is out of scope in the Margo specification.
 
-## 7 Personas and Use Cases
+### 6.2 Device Roles
 
-### 7.1 Primary Persona: Plant Operator
-
-#### 7.1.1 Role Definition
-The plant operator is an individual or team responsible for keeping a manufacturing process operational, with the greatest decision power for Margo adoption.
-
-#### 7.1.2 Primary Objectives
-- Deploy, manage, and maintain a fleet of edge apps and associated hosting devices
-- Maximize uptime of their fleet
-- Scale operations from single plants to global enterprises
-
-#### 7.1.3 User Journey
-The plant operator SHALL be able to:
-1. Identify applications from different vendors to improve manufacturing throughput
-2. Validate applications in proof-of-concept on test lines
-3. Add applications to organization's private catalog
-4. Deploy and configure application instances to selected edge devices
-5. Configure devices to match application requirements
-6. Monitor application performance and confirm improvements
-7. Observe the health state with existing observability platforms
-8. Scale deployment to hundreds of devices across global facilities
-9. Manage fleet-wide updates and maintenance
-
-### 7.2 Secondary Personas
-
-#### 7.2.1 Application Developer
-**Primary Goal**: Build, describe, and package applications once for deployment to any Margo-compliant edge device.
-
-**Requirements**:
-- Applications SHALL support deployment at scale regardless of fleet management platforms
-- Applications SHALL work on any compatible edge compute devices
-- Developers SHALL maintain application compatibility across different hosting environments
-
-#### 7.2.2 Device Manufacturer
-**Primary Goal**: Build devices once, equipped to host a wide variety of applications for many plant operators.
-
-**Requirements**:
-- Devices SHALL be compatible with ALL Margo-compliant Fleet Managers
-- Manufacturers SHALL have freedom of implementation for specific components
-- Devices MUST provide guaranteed functionality that Application Vendors can depend on
-
-#### 7.2.3 Fleet Management Software Vendor
-**Primary Goal**: Build a software platform that manages fleets of applications and devices at scale.
-
-**Requirements**:
-- Software SHALL work regardless of the chosen application developers and device manufacturers
-- Platform SHALL provide centralized management and observability
-- System SHALL handle device orchestration, application deployment, and lifecycle management
-
-#### 7.2.4 System Integrator
-**Primary Goal**: Deliver integration services based on reusable deployment patterns.
-
-**Requirements**:
-- SHALL provide customized applications and devices
-- SHALL allow plant operators to maintain solutions with their choice of fleet management software
-- SHALL focus on reusable deployment patterns
-
-#### 7.2.5 Machine Builder
-**Primary Goal**: Augment and differentiate machine fleets through application and device combinations.
-
-**Requirements**:
-- SHALL provide single-effort deployment capability
-- SHALL allow plant operators to deploy and maintain applications with chosen fleet management software
-- SHALL focus on value-added differentiation
-
----
-
-## 8 System Architecture
-
-### 8.1 System Overview
-
-The Margo system architecture consists of four main components:
-
-a) **Workloads**: Software deployed to Margo-compliant edge compute devices
-b) **Workload Observability**: Diagnostic information collection using OpenTelemetry
-c) **Workload Fleet Management**: Centralized software solution for managing workload lifecycle
-d) **Edge Compute Devices**: Compute surfaces where workloads are deployed and run
-
-### 8.2 Three-Layer Architecture
-
-Margo device roles SHALL consist of three major layers:
-
-#### 8.2.1 Margo Interface Layer
-- SHALL host the Margo management interface client
-- SHALL provide standardized interfaces for workload management
-- SHALL ensure compliance with Margo requirements
-
-#### 8.2.2 Platform Layer
-- SHALL provide a container runtime environment
-- SHALL support Kubernetes, Docker, or Podman platforms
-- SHALL abstract underlying hardware differences
-
-#### 8.2.3 Traditional Device Layer
-- SHALL provide compute hardware that hosts Margo-compliant workloads
-- MAY implement vendor-specific features
-- SHALL provide foundation for upper layers
-
-### 8.3 Component Interactions
-
-#### 8.3.1 Data Flow Architecture
-```
-End User → Workload Fleet Manager Frontend → Workload Fleet Manager → 
-Application Registry → Device Management Client → Container Platform
-```
-
-#### 8.3.2 GitOps Deployment Pattern
-The system SHALL use the OpenGitOps approach for managing Edge device desired state:
-- Workload orchestration vendors SHALL maintain Git repositories
-- Device management clients SHALL monitor assigned Git repositories for state changes
-- State changes SHALL be applied automatically when detected
-
-### 8.4 Software Composition Patterns
-
-#### 8.4.1 Application Description Model
-The system SHALL use an application description model to:
-- Abstract deployment details
-- Support multiple deployment types without special logic
-- Enable targeting of different device types
-
-#### 8.4.2 Workload Packaging Structure
-```
-/
-├── application description (margo.yaml)
-├── resources/
-│   ├── icon
-│   ├── license
-│   └── documentation
-└── deployment artifacts
-```
-
----
-
-## 9 Device Requirements and Architecture
-
-### 9.1 Device Roles
-
-The following device roles are supported:
-- **Standalone Cluster**: Independent cluster operation
-- **Cluster Leader**: Manages cluster operations
-- **Cluster Worker**: Participates in the cluster as a worker node
-- **Standalone Device**: Individual device operation
+Supported Device roles:
+- **Standalone Cluster** (Leader and/or Worker)
+- **Cluster Leader**
+- **Cluster Worker** 
+- **Standalone Device**
 
 Note: Additional device roles will be introduced as the specification matures.
 
-### 9.2 Core Device Requirements
+### 6.3 Margo Device Layers
 
-#### 9.2.1 Mandatory Requirements
-- Devices MUST host a Margo management interface client
-- The device's management client MUST monitor the device's Git repository for updates
-- The device's management client MUST report progress on state changes using the Device API
-- When reporting a Failure state, the error message and error code MUST be reported
-- The workload orchestration solution MUST store the device's desired state documents within a Git repository
+Margo device roles consist of three major layers:
+- **Margo Interface Layer**
+- **Platform Layer**
+- **Traditional Device Layer**
 
-#### 9.2.2 Container Platform Support
-Margo-compliant devices SHALL support containerized workloads on:
-- **Kubernetes**: Applications packaged as Helm charts (version 3)
-- **Docker**: Applications packaged as Compose files in tarball format
-- **Podman**: Support for containerized deployments
+Although Margo requires compliance towards its requirements, such as hosting the Margo management interface client, the device vendor has freedom to implement as they see fit.
 
-### 9.3 Device Capability Reporting
+## 7. Software Composition
 
-#### 9.3.1 Capability Requirements
-Devices SHALL report:
-- Processor architecture (ARM, x86_64)
-- Available memory and storage
-- GPU presence and capabilities
-- Container runtime support
-- Network capabilities
+### 7.1 Terminology Scoping
 
-#### 9.3.2 Compatibility Determination
-The framework SHALL enable workload fleet managers to:
-- Determine which edge compute devices are compatible with workloads
-- Validate hardware requirements before deployment
-- Match workload requirements to device capabilities
+This section scopes terminology to the software packaging and deployment stages:
 
-### 9.4 Device Benefits
+**Application:** The term application applies to all stages.
 
-#### 9.4.1 Universal Compatibility
-Margo compliant devices SHALL be compatible with ALL Margo compliant Fleet Managers.
+**Workload:** The term Workload applies only to running software (deployment stage). Workloads are the result of deploying Components.
 
-#### 9.4.2 Implementation Freedom
-Device vendors SHALL have freedom to implement specific components as long as they provide the agreed upon functionality.
+**Component:** The term Component applies to the resources available in packaged software that get deployed as Workloads. Some providers might support that multiple Workload replicas are deployed from a single Component. Components are made available over Component Registries.
 
----
+Components might have different shapes depending on their type and stage:
+- **Helm v3 as Component:** a Helm Chart
+- **Helm v3 as Workload:** all container images required by the to-be-started pods
+- **Compose as Component:** a Compose Archive
+- **Compose as Workload:** a Compose file and all the container images required by the to-be-started services
 
-## 10 Application Package Specifications
+### 7.2 Software Packaging Stage
 
-### 10.1 Package Definition and Structure
+Software at rest is made available as an Application Package, which is a folder with a Margo-defined structure comprising the software application. This Application Package contains:
 
-#### 10.1.1 Required Structure
-The application package SHALL have the following file/folder structure:
+- An Application Description that is a Margo-specific way to define the composition of one or more Components. These Components are linked in the Application Description document, are deployable as workloads, and are provided in a Margo-supported way, e.g. as Helm Charts or Compose Archives.
+- Some application resources: icon, license(s), release notes
+
+Application Packages and Components are managed and hosted separately:
+- Application Registries store Application Descriptions and their associated application resources. An Application Registry is implemented as a git repository.
+- Component Registries store Components
+
+### 7.3 Software Deployment Stage
+
+When a device gets the instruction to run an Application (over a desired-state specified with an ApplicationDeployment object), its Workload Fleet Management Agent interacts with the providers. That way all Workloads needed for an Application should get started and the desired state should be reached.
+
+In this stage the providers are responsible for managing the individual Workloads.
+
+On a Helm v3 Deployment Profile, a Workload Fleet Management Agent implementation could utilize the Helm API to start the individual Helm Charts.
+
+On a Compose Deployment Profile, a Workload Fleet Management Agent implementation could utilize the Compose CLI to start the individual Workloads.
+
+## 8. Application Interoperability
+
+### 8.1 Workloads Overview
+
+A workload is software deployed to, and run on, Margo compliant edge compute devices.
+
+In order to help achieve Margo's interoperability mission statement, we are initially targeting containerized workloads capable of running on platforms like Kubernetes, Docker and Podman. The flexibility these platforms provide enables workload suppliers to define and package their workloads in a common way using Helm or the Compose specification so they can more easily be deployed to multiple compatible edge compute devices.
+
+While Margo is initially targeting deployments using Helm or Compose, we plan to support other deployment types in the future. One of our design goals is to make it easier for workload fleet managers to support the current and future deployment types without having to implement special logic for each type.
+
+### 8.2 Application Description Model Goals
+
+The three main goals of Margo's application description model is to allow workload fleet managers to do the following:
+- Display information about the workloads the OT user can deploy (e.g., a workload catalog)
+- Determine which edge compute devices are compatible with the workloads (e.g., processor types match, GPU present, etc.)
+- Capture, and validate, configuration information from the OT user when deploying and updating workloads
+
+### 8.3 Application Package Definition
+
+The application package comprises the following elements:
+
+- **Application Description:** A YAML document with the element `kind` defined as `ApplicationDescription`, stored in a file (e.g., `margo.yaml`) containing metadata, deployment configurations, and configurable parameters. There SHALL be only one YAML file in the package root of kind `ApplicationDescription`.
+- **Resources:** Additional information about the application (e.g., manual, icon, release notes, license file) that can be provided in an application catalog or marketplace.
+
+### 8.4 Package Structure
+
 ```
 / # REQUIRED top-level directory
-└── application description # REQUIRED YAML document with kind 'ApplicationDescription'
+└── application description # REQUIRED YAML document with 'kind' as 'ApplicationDescription'
 └── resources # OPTIONAL folder with application resources
 ```
 
-#### 10.1.2 Key Requirements
-- There SHALL be only one YAML file in the package root of kind ApplicationDescription
-- Applications MUST be packaged as Helm charts AND/OR Compose components
-- Digital signing using PGP encryption MUST be used when signing Compose packages
-
-### 10.2 Application Description Schema
-
-#### 10.2.1 Top-Level Structure
-```yaml
-apiVersion: margo.org/v1-alpha1
-kind: ApplicationDescription
-metadata: {...}
-catalog: {...}
-deploymentProfiles: [...]
-parameters: {...}
-configuration: {...}
-schema: [...]
-```
-
-#### 10.2.2 Metadata Requirements
-The metadata section SHALL include:
-- `id` (string, required): Application identifier
-- `name` (string, required): Display name
-- `description` (string, optional): Description
-- `version` (string, required): Version identifier
-
-### 10.3 Deployment Profiles
-
-#### 10.3.1 Supported Types
-- **helm.v3**: For Kubernetes-based deployments
-- **compose**: For Docker/Podman deployments
-
-#### 10.3.2 Profile Components
-Each deployment profile SHALL specify:
-- Component name
-- Repository or package location
-- Version/revision information
-- Wait and timeout parameters
-
-### 10.4 Parameter Configuration
-
-#### 10.4.1 Parameter Definition
-Parameters SHALL include:
-- Name and default value
-- Target specifications for deployment
-- Validation schema reference
-
-#### 10.4.2 Configuration Sections
-The configuration section SHALL organize parameters into logical groups for user interface presentation.
-
-### 10.5 Application Registry
-
-#### 10.5.1 Registry Requirements
-- Application developers SHALL use Git repositories as application registries
-- Registry connections SHALL be read-only for security
-- Workload orchestration vendors SHALL retrieve packages via git pull
-
-#### 10.5.2 Publishing Workflow
-1. The developer creates an application package
-2. Package stored in Git repository
-3. WOS connects to the registry
-4. End user browses catalog
-5. WOS retrieves the package upon selection
-6. User configures parameters
-7. Application deployed via desired state
-
----
-
-## 11 Workload Management Interface
-
-### 11.1 Interface Specifications
-
-#### 11.1.1 Workload Orchestration Service Features
-The service SHALL provide:
-- API server endpoint for deployment status updates
-- Device capabilities reception and management
-- GitOps-enabled repository for desired state provision
-- Deployment specification storage and retrieval
-
-#### 11.1.2 Device Workload Management Interface
-The device interface SHALL include:
-- REST API client for sending deployment status updates
-- Device capability information transmission
-- Git client/library for deployment specification retrieval
-- Automatic workload orchestrator updates upon reconfiguration
-
-### 11.2 Deployment Process
-
-#### 11.2.1 GitOps Implementation
-The system SHALL use OpenGitOps patterns:
-- One Git repository per device
-- Desired state expressed as Kubernetes CRDs
-- Automatic synchronization upon state changes
-
-#### 11.2.2 Deployment States
-The following states SHALL be supported:
-- **Pending**: Device received desired state but hasn't started
-- **Installing**: Device actively applying desired state
-- **Success**: Desired state successfully applied
-- **Failure**: Desired state application failed
-
-### 11.3 Container Platform Requirements
-
-#### 11.3.1 Kubernetes Requirements
-- Minimum version 1.24+ with CRI-compliant runtime
-- Support for Custom Resource Definitions
-- Network policy enforcement capabilities
-- Persistent volume support
-
-#### 11.3.2 Docker/Podman Requirements
-- OCI-compliant container runtime
-- Compose specification support
-- Volume mounting and network configuration
-- Resource limit enforcement
-
-### 11.4 Workload Lifecycle Management
-
-#### 11.4.1 Installation Phase
-1. Application selection from catalog
-2. Parameter configuration and validation
-3. ApplicationDeployment creation
-4. Desired state generation and Git update
-5. Device synchronization and deployment
-
-#### 11.4.2 Update Phase
-1. Configuration changes via fleet manager
-2. Desired state modification
-3. Git repository update
-4. Device detection and application
-5. Status reporting and verification
-
-#### 11.4.3 Deletion Phase
-1. Removal request via fleet manager
-2. Desired state cleanup
-3. Git repository update
-4. Device cleanup and deallocation
-
----
-
-## 12 Fleet Management Specifications
-
-### 12.1 Fleet Management Capabilities
-
-#### 12.1.1 Core Capabilities
-- Multi-vendor device support
-- Scalable orchestration for industrial environments
-- Containerized workload support
-- Deployment flexibility with Helm and Compose
-- Integrated observability
-
-#### 12.1.2 Device Onboarding
-The onboarding process SHALL include:
-- Fleet Manager assignment
-- Management client installation
-- Git repository access provisioning
-- Compliance validation
-
-### 12.2 GitOps-Based State Management
-
-#### 12.2.1 Repository Management
-- Each device SHALL have an assigned Git repository
-- Access SHALL be controlled via URLs and tokens
-- Changes SHALL be traceable through Git history
-
-#### 12.2.2 Desired State Lifecycle
-1. State creation based on user inputs
-2. Repository updates with new state
-3. Device monitoring for changes
-4. State application and reporting
-5. Status tracking and verification
-
-### 12.3 Multi-Device Orchestration
-
-#### 12.3.1 Device Role Specialization
-- Cluster leaders SHALL coordinate worker nodes
-- Workload distribution SHALL match device capabilities
-- Resource compatibility SHALL be validated
-
-#### 12.3.2 Fleet Coordination
-- Centralized orchestration per device set
-- Distributed state via individual repositories
-- Unified monitoring across fleet
-- Centralized application catalogs
-
-### 12.4 Management Client Requirements
-
-#### 12.4.1 Core Requirements
-The management client SHALL:
-- Monitor assigned Git repository
-- Apply desired state when detected
-- Report deployment progress
-- Meet interface layer requirements
-
-#### 12.4.2 Security Requirements
-- Secure Git repository access
-- Support for signed packages
-- Integration with authenticated registries
-
----
-
-## 13 Observability Framework
-
-### 13.1 Framework Overview
-
-#### 13.1.1 Purpose
-The observability framework enables collection and analysis of information from industrial edge systems to monitor internal behavior.
-
-#### 13.1.2 Technology Foundation
-The framework SHALL be based exclusively on OpenTelemetry specification for vendor-neutral observability.
-
-### 13.2 Observability Signals
-
-#### 13.2.1 Metrics
-Numerical measurements over time including:
-- CPU and memory usage
-- Disk space availability
-- Network statistics
-- Application-specific metrics
-
-#### 13.2.2 Logs
-Text outputs providing:
-- Security events
-- Error conditions
-- System state changes
-- Application logs
-
-#### 13.2.3 Traces
-Contextual data for:
-- Request path tracking
-- Performance bottleneck identification
-- Failure point analysis
-- Distributed system debugging
-
-### 13.3 Scope and Limitations
-
-#### 13.3.1 Included Monitoring
-The framework SHALL monitor:
-- Device container platform health
-- Workload Fleet Management Client state
-- Compliant workloads deployed to devices
-
-#### 13.3.2 Excluded Monitoring
-The framework SHALL NOT monitor:
-- Production processes outside the device
-- Industrial machinery and equipment
-- Controllers and sensors
-- External systems beyond edge boundary
-
-### 13.4 Implementation Requirements
-
-#### 13.4.1 OpenTelemetry Integration
-- Applications SHALL respect OTEL environment variables
-- Collectors SHALL run on each device
-- Data SHALL flow through standardized pipelines
-- Both automatic and manual instrumentation SHALL be supported
-
-#### 13.4.2 Data Collection Patterns
-- Infrastructure metrics collection
-- Container platform monitoring
-- Application performance tracking
-- Resource consumption analysis
-
----
-
-## 14 API Specifications
-
-### 14.1 API Versioning
-
-#### 14.1.1 Current Version
-- Version identifier: v1-alpha1
-- Status: Pre-draft specification
-- Format: margo.org/v1-alpha1
-
-### 14.2 Application Package API
-
-#### 14.2.1 ApplicationDescription API
-**Purpose**: Present application metadata and define deployment configurations
-
-**Schema Elements**:
-- apiVersion: API version identifier
-- kind: Must be "ApplicationDescription"
-- metadata: Application identification
-- catalog: Display information
-- deploymentProfiles: Deployment specifications
-- parameters: Configurable values
-- configuration: UI layout
-- schema: Validation rules
-
-### 14.3 Device API
-
-#### 14.3.1 Deployment Status API
-**Purpose**: Report deployment state changes
-
-**States**:
-- Pending: Received but not started
-- Installing: In progress
-- Success: Completed successfully
-- Failure: Failed with error details
-
-### 14.4 Desired State API
-
-#### 14.4.1 ApplicationDeployment Schema
-```yaml
-apiVersion: application.margo.org/v1alpha1
-kind: ApplicationDeployment
-metadata:
-  annotations:
-    applicationId: <app-id>
-    id: <deployment-uuid>
-  name: <deployment-name>
-  namespace: <namespace>
-spec:
-  deploymentProfile: {...}
-  parameters: {...}
-```
-
-### 14.5 Data Models
-
-#### 14.5.1 Common Attributes
-All API objects SHALL include:
-- apiVersion field
-- kind field
-- metadata section
-- spec or equivalent section
-
-#### 14.5.2 Validation Schemas
-The following validation types SHALL be supported:
-- TextValidationSchema
-- BooleanValidationSchema
-- NumericIntegerValidationSchema
-- NumericDoubleValidationSchema
-- SelectValidationSchema
-
----
-
-## 15 Interoperability Requirements
-
-### 15.1 Cross-Vendor Compatibility
-
-#### 15.1.1 Device Interoperability
-- All Margo-compliant devices MUST work with all compliant fleet managers
-- Devices SHALL support standardized APIs
-- Capability reporting SHALL use common formats
-
-#### 15.1.2 Application Interoperability
-- Applications SHALL deploy consistently across compliant devices
-- Package formats SHALL be standardized
-- Configuration interfaces SHALL be uniform
-
-### 15.2 Registry Interactions
-
-#### 15.2.1 Application Registry Standards
-- Git-based repositories for packages
-- Read-only access patterns
-- Standardized package retrieval
-
-#### 15.2.2 Container Registry Support
-- OCI-compliant registries
-- Authenticated access support
-- Multi-architecture image support
-
-### 15.3 Compliance Testing
-
-#### 15.3.1 Test Framework
-- Open compliance test suite
-- Publicly traceable results
-- Automated testing procedures
-
-#### 15.3.2 Compliance Areas
-- Interface compliance
-- Interoperability validation
-- Security verification
-- Performance testing
-
-### 15.4 Standards Alignment
-
-#### 15.4.1 Leveraged Standards
-- Open Container Initiative compliance
-- CNCF project integration
-- OpenTelemetry observability
-- OpenGitOps principles
-
-#### 15.4.2 Vendor Neutrality
-- No vendor lock-in
-- Cross-vendor compatibility
-- Standardized packaging
-- Interoperable interfaces
-
----
-
-## 16 Security Considerations
-
-### 16.1 Package Security
-
-#### 16.1.1 Digital Signing
-- Compose packages MUST be digitally signed
-- PGP encryption SHALL be used
-- Public keys SHALL be distributed securely
-
-#### 16.1.2 Registry Security
-- Secure container registries SHALL be supported
-- Authentication SHALL be implemented
-- Access control SHALL be enforced
-
-### 16.2 Communication Security
-
-#### 16.2.1 Network Security
-- Standard secure connectivity SHALL be used
-- TLS/HTTPS for data transmission
-- Certificate validation SHALL be enforced
-
-#### 16.2.2 Authentication
-- Token-based authentication for GitOps
-- Registry authentication support
-- Device authentication mechanisms
-
-### 16.3 Operational Security
-
-#### 16.3.1 Access Control
-- Role-based access control
-- Least privilege principles
-- Audit logging capabilities
-
-#### 16.3.2 Data Protection
-- Sensitive data encryption
-- Secure credential storage
-- Configuration protection
-
----
-
-## Annex A (normative) - Application Description Schema
-
-### A.1 Complete Schema Definition
+### 8.5 Deployment Profiles
+
+The deployment profiles specified in the application description SHALL be defined as Helm Charts AND/OR Compose components:
+
+- **For Kubernetes devices:** Applications must be packaged as Helm charts using Helm (version 3)
+- **For Compose devices:** Applications must be packaged as a tarball file containing the compose.yml file and any additional artifacts referenced by the Compose file. It is highly recommended to digitally sign this package. When digitally signing the package PGP encryption MUST be used.
+
+If either one cannot be implemented it MAY be omitted but Margo RECOMMENDS defining deployment profiles as both Helm chart AND Compose components to strengthen interoperability and applicability.
+
+Note: A device running the application will only install the application using either Compose files or Helm Charts but not both.
+
+### 8.6 Example Workflow
+
+The following workflow shows how a workload fleet manager might use the application description information:
+
+1. End user visits an workload catalog of the Workload Fleet Manager Frontend
+2. Frontend requests all workloads from the Workload Fleet Manager
+3. Either: the Workload Fleet Manager requests all application descriptions from each known Application Registry, or maintains a cache of application descriptions
+4. The Workload Fleet Manager returns the retrieved documents of application descriptions to the frontend
+5. The frontend parses the metadata element of all received application description documents
+6. The frontend presents the parsed metadata in a UI to the end user
+7. The end user selects the workload to be installed
+8. The frontend parses the configuration element of the selected application description
+9. The frontend presents the parsed configuration to the user
+10. The end user fills out the configurable application parameters to be applied to the workload
+11. The frontend creates an ApplicationDeployment definition and sends it to the Workload Fleet Manager
+
+### 8.7 Application Registry Interaction
+
+The Application Developer SHALL use a Git repository to share an application package. This Git repository is considered the Application Registry.
+
+The connectivity between the Workload Orchestration Software and the Application Registry SHALL be read-only.
+
+Upon installation request from the End User, the Workload Orchestration Vendor SHALL retrieve the application package using a git pull request from the Application Registry.
+
+At a minimum, a Margo-compliant WOS SHALL provide a way for an end user to manually setup a connection between the WOS and an application registry.
+
+#### 8.7.1 Secure Access to the Application Package
+
+The connection between the Workload Orchestration software and the Application developer's application registry should be secured using standard secure connectivity best practices:
+- Basic authentication via HTTPS
+- Bearer token authentication
+- TLS certifications
+
+### 8.8 Publishing Workload Observability Data
+
+Compliant workloads MAY choose to expose workload specific observability data by sending their observability data to the Open Telemetry collector on the standalone device or cluster. While this is optional, it is highly recommended in order to support distributed diagnostics.
+
+**Requirements:**
+- Workload suppliers choosing to expose metrics, traces or logs for consumption with OpenTelemetry MUST send the data to the OpenTelemetry collector using OTLP
+- The information required to communicate with the device's OTEL Collector is injected into each container using environment variables
+- Workload suppliers SHOULD NOT expect their workloads to be auto-instrumented by anything outside of their control
+- A workload supplier MAY choose an observability framework other than OpenTelemetry but it MUST be self-contained within the deployment of their workload
+- If an alternative approach is taken, it is NOT recommended workload suppliers publish their observability data outside the device/cluster by using any other means other than the Open Telemetry collector
+- If the workload supplier chooses to export data without using the OpenTelemetry collector they MUST NOT do this without the end user's approval
+
+### 8.9 Local Registries
+
+Local registries provide options for configuring the usage of local OCI-based container (or Helm Chart) registries. The goal is to avoid reliance on public, Internet-accessible registries for reasons including:
+1. Publicly hosted container images or Helm charts could become unavailable
+2. Internet connectivity may not be available to the device
+3. End-users want to host their own registries for security scans and validation
+
+#### 8.9.1 Device Categories by Connectivity
+
+- **Fully connected device:** Device deployed in the field with Internet access
+- **Locally connected device:** Device has connectivity to a local network and a local repository can be made reachable
+- **Air-gapped device:** Device generally not connected and must be configured by accessing it directly
+
+#### 8.9.2 Local Registry Configuration Options
+
+**Option 1: Container Registry Mirror on Kubernetes Level**
+
+Kubernetes supports the configuration of registry mirrors. For k3s, the file `/etc/rancher/k3s/registries.yaml` can be used:
 
 ```yaml
-apiVersion: margo.org/v1-alpha1
-kind: ApplicationDescription
-metadata:
-  id: string # Required, lowercase-numbers-dashes, max 200 chars
-  name: string # Required, display name
-  description: string # Optional
-  version: string # Required
-catalog:
-  application:
-    descriptionFile: string # Link to markdown
-    icon: string # PNG format
-    licenseFile: string # Text/markdown/PDF
-    releaseNotes: string # Markdown/PDF
-    site: string # Website URL
-    tagline: string # Slogan
-    tags: [string] # Categories
-  author:
-    - name: string
-      email: string
-  organization:
-    - name: string # Required
-      site: string
-deploymentProfiles:
-  - type: string # helm.v3 or compose
-    components:
-      - name: string # Required, unique
-        properties: # Type-specific
-parameters:
-  parameterName:
-    value: any # Default value
-    targets:
-      - pointer: string # Target path
-        components: [string]
-configuration:
-  sections:
-    - name: string
-      settings:
-        - parameter: string
-          name: string
-          description: string
-          schema: string
-          immutable: boolean
-schema:
-  - name: string
-    dataType: string
-    # Additional type-specific fields
+mirrors:
+  "docker.io":
+    endpoint:
+      - "http://<local-registry-ip>:5000"
+configs:
+  "docker.io":
+    auth:
+      username: "<username>"
+      password: "<password>"
 ```
 
-### A.2 Metadata Specifications
+**Option 2: Container Registry as Pull-through Cache on Docker Level**
 
-All metadata fields SHALL conform to the following requirements:
-- ID fields use lowercase letters, numbers, and dashes only
-- Version fields follow semantic versioning
-- URLs must be valid HTTP/HTTPS addresses
-- File paths are relative to package root
-
-### A.3 Deployment Profile Properties
-
-#### A.3.1 Helm v3 Properties
-- repository: OCI URL (required)
-- revision: Chart version (required)
-- wait: Boolean (default true)
-- timeout: Duration string
-
-#### A.3.2 Compose Properties
-- packageLocation: URL (required)
-- keyLocation: PGP key URL
-- wait: Boolean (default true)
-- timeout: Duration string
-
----
-
-## Annex B (normative) - Deployment State Schema
-
-### B.1 ApplicationDeployment Schema
+Configure a Docker Registry as caching proxy using `config.yml`:
 
 ```yaml
-apiVersion: application.margo.org/v1alpha1
-kind: ApplicationDeployment
-metadata:
-  annotations:
-    applicationId: string # Must match ApplicationDescription
-    id: string # UUID
-  name: string
-  namespace: string
-spec:
-  deploymentProfile:
-    type: string # helm.v3 or compose
-    components:
-      - name: string
-        properties: # Component-specific
-  parameters:
-    parameterName:
-      value: any
-      targets:
-        - pointer: string
-          components: [string]
+version: 0.1
+log:
+  fields:
+    service: registry
+storage:
+  filesystem:
+    rootdirectory: /var/lib/registry
+http:
+  addr: :5000
+  headers:
+    X-Content-Type-Options: [nosniff]
+health:
+  storagedriver:
+    enabled: true
+    interval: 10s
+    threshold: 3
+proxy:
+  remoteurl: https://registry-1.docker.io
 ```
 
-### B.2 State Transition Requirements
+**Option 3: Helm Chart Registry as Pull-through Cache**
 
-Deployment states SHALL transition according to:
-- Pending → Installing → Success
-- Pending → Installing → Failure
-- No reverse transitions allowed
-- Failure states must include error details
+Setting up ChartMuseum with proxy cache enabled:
 
-### B.3 Error Reporting
-
-Failure states SHALL include:
-- Error message (human-readable)
-- Error code (machine-readable)
-- Timestamp of failure
-- Component identification
-
----
-
-## Annex C (informative) - Implementation Examples
-
-### C.1 Simple Application Example
-
-```yaml
-apiVersion: margo.org/v1-alpha1
-kind: ApplicationDescription
-metadata:
-  id: com-example-hello-world
-  name: Hello World
-  description: Basic hello world application
-  version: "1.0"
-catalog:
-  application:
-    icon: ./resources/icon.png
-    tagline: Simple greeting application
-deploymentProfiles:
-  - type: helm.v3
-    components:
-      - name: hello-world
-        properties:
-          repository: oci://registry/charts/hello
-          revision: 1.0.0
-parameters:
-  greeting:
-    value: "Hello"
-    targets:
-      - pointer: config.greeting
-        components: ["hello-world"]
-configuration:
-  sections:
-    - name: General
-      settings:
-        - parameter: greeting
-          name: Greeting Text
-          schema: text
-schema:
-  - name: text
-    dataType: string
-    maxLength: 50
+```bash
+helm repo add chartmuseum https://chartmuseum.github.io/charts
+helm repo update
+helm install my-chartmuseum chartmuseum/chartmuseum --set env.open.DISABLE_API=false --set env.open.PROXY_CACHE=true
 ```
 
-### C.2 Complex Multi-Component Application
+## 9. Fleet Management
 
-```yaml
-apiVersion: margo.org/v1-alpha1
-kind: ApplicationDescription
-metadata:
-  id: com-example-analytics
-  name: Edge Analytics Platform
-  version: "2.1.0"
-deploymentProfiles:
-  - type: helm.v3
-    components:
-      - name: database
-        properties:
-          repository: oci://registry/database
-          revision: 3.2.1
-      - name: analytics
-        properties:
-          repository: oci://registry/analytics
-          revision: 2.1.0
-  - type: compose
-    components:
-      - name: analytics-docker
-        properties:
-          packageLocation: https://example.com/analytics.tar.gz
-          keyLocation: https://example.com/key.asc
-# Additional configuration...
+### 9.1 Workload Fleet Management Overview
+
+Workload Management is a critical functionality that enables deployment and maintenance of workloads that are deployed to the customer's edge to enable business goals. In order to achieve Margo's interoperability mission statement, the Margo Management Interface is a critical component that enables interoperability between Workload Fleet Management Software vendors and Device Vendors.
+
+The main goals of the management interface are:
+- By hosting the server side of the interface, Workload Fleet Managers are enabled with the ability to onboard and manage workloads on all Margo compliant devices
+- Device Vendors are able to build devices that include the client side of the interface which enables workload management via all Margo compliant fleet managers
+
+### 9.2 Workload Deployment Sequence
+
+The complete workload deployment sequence includes:
+
+1. End User visits App Catalog Page
+2. Workload Fleet Manager Frontend gets list of available workloads
+3. End User selects workload to install
+4. Frontend gets list of devices and filters on capability match
+5. End User selects Device(s) and answers configurable questions
+6. Workload Fleet Manager creates & stores new deployment specification(s)
+7. Workload Fleet Management Client continuously checks for new deployment specifications
+8. Client pulls deployment specification(s) and workload manifest
+9. Container Orchestrator initiates workload installation components
+10. Container Runtime pulls OCI Containers
+11. Workload Fleet Management Client provides component status updates
+12. Full deployment status is provided and UI is updated
+
+### 9.3 Management Interface Requirements
+
+The Management Interface MUST provide the following functionality:
+- Device onboarding with the workload orchestration solution
+- Device capabilities reporting
+- Identifying desired state changes
+- Deployment status reporting
+
+#### 9.3.1 Implementation Requirements
+
+- Workload Fleet Management vendors MUST implement the server side of the API specification
+- Device vendors MUST implement a client following the API specification
+- The solution MUST maintain a storage repository for desired state files (Margo does not dictate how the desired state files are stored, other than ensuring they are available upon request)
+- The device's management client MUST retrieve the device's set of desired state files from the Workload Fleet Manager
+- Interface patterns MUST support extended device communication downtime
+- The Management Interface MUST reference industry security protocols and port assignments for both client and server interactions
+- Running the device's management client as containerized services is preferred but not required
+
+#### 9.3.2 Configuration Requirements
+
+The Management Interface MUST allow end user configuration of:
+- **Downtime configuration:** Ensures the device's management client is not retrying communication during known downtime. Communication errors MUST be ignored during this configurable period.
+- **Polling Interval Period:** Configurable time period indicating the hours in which the device's management client checks for updates to the device's desired state
+- **Polling Interval Rate:** Rate for how frequently the device's management client checks for updates to the device's desired state
+
+### 9.4 Edge Device Onboarding
+
+The onboarding process includes:
+
+1. End user provides the Workload Fleet Management web service's root URL to the device's management client
+2. Device's management client downloads the workload orchestration solution vendor's public root CA certificate using the Onboarding API
+3. Context and trust is established between the device's management client and the Workload Fleet Management web service
+4. Device's management client uses the Onboarding API to onboard with the workload orchestration service
+5. Device's management client receives the client Id, client secret and token endpoint URL used to generate a bearer token
+6. Device's management client receives the URL for the Git repository containing its desired state and an associated access token for authentication
+7. Device capabilities information is sent from the device to the workload orchestration web service using the Device API
+
+#### 9.4.1 Configuring the Workload Fleet Management Web Service URL
+
+To ensure the management client is configured to communicate with the correct Workload Fleet Management web service, the device's management client needs to be configured with the expected URL. The device vendor MUST provide a way for the end user to manually set the URL the device's management client uses to communicate with the workload orchestration solution chosen by the end user.
+
+#### 9.4.2 Margo Web API Authentication Method
+
+The Margo Web API communication pattern between the device's management client and the workload orchestration web service must use a secure communication channel. Margo requires the use of oAuth 2.0 for authentication.
+
+**API Authorization Strategy:**
+- During the onboarding process the Workload Fleet Management's web service provides the management client with a client Id, client secret and token endpoint URL
+- The management client uses this information to create a bearer token for each request
+- The bearer token is set in the Authorization header for each web request sent to the Workload Fleet Management's web service requiring authorization
+
+#### 9.4.3 Payload Security Method
+
+Because of limitations using mTLS with common OT infrastructure such as TLS terminating HTTPS load-balancer or a HTTPS proxy doing lawful inspection, Margo has adopted a certificate-based payload signing approach to protect payloads from being tampered with.
+
+**Process:**
+- During the onboarding process the end user uploads the device's x.509 certificate to the workload orchestration solution
+- The device's management client downloads the root CA certificate using the Onboarding API
+- Once complete, both parties are able to secure their payloads
+
+**Message Envelope Details:**
+Once the edge device has a message prepared for the Workload Fleet Management's web service, it completes the following to secure the message:
+1. The device's management client calculates a digest and signature of the payload
+2. The device's management client adds an envelope around it that has:
+   - Actual payload
+   - SHA of the payload, signed by the device certificate
+   - Identifier for the certificate (MUST be the GUID provided by the device manufacturer, typically the hardware serial number)
+3. The envelope is sent as the payload to the Workload Fleet Management's web service
+4. The Workload Fleet Management's web service treats the request's payload as envelope structure, and receives the certificate identifier
+5. The Workload Fleet Management's web service computes digest from the payload, and verifies the signature using the device certification
+6. The payload is then processed by the Workload Fleet Management's web service
+
+### 9.5 Device Capability Reporting
+
+The purpose of device capabilities reporting is to ensure the Workload Fleet Management solution has the information needed to pair workloads with compatible edge devices.
+
+**Device Capability Reporting Requirements:**
+- The device owner MUST report their device's capabilities and characteristics via the Device API when onboarding the device with the workload orchestration solution
+- During the lifecycle of the Edge device, if there is a change that impacts the reported characteristics, the device's interface shall send an update to the Workload Fleet Manager
+
+**Required Information:**
+- Device Id
+- Device Vendor
+- Model Number
+- Serial Number
+- Margo Device Role Designation (Cluster Leader/Worker / Standalone Device)
+- Resources available for workloads:
+  - Memory Capacity
+  - Storage Capacity
+  - CPU information
+  - Device peripherals (i.e. Graphics card)
+  - Network interfaces (wifi/eth/cellular)
+
+### 9.6 Workload Deployment
+
+Margo uses an OpenGitOps approach for managing the edge device's desired state. The workload orchestration solution vendor maintains Git repositories, under their control, to push updates to the desired state for each device being managed.
+
+#### 9.6.1 Desired State Requirements
+
+- The workload orchestration solution MUST store the device's desired state documents within a Git repository the device's management client can access
+- The device's management client MUST monitor the device's Git repository for updates to the desired state using the URL and access token provided by the workload orchestration solution during onboarding
+
+#### 9.6.2 Workload Management Sequence of Operations
+
+**Desired State lifecycle:**
+1. The workload orchestration solution creates the desired state documents based on the end user's inputs when installing, updating or deleting an application
+2. The workload orchestration solution pushes updates to the device's Git repository reflecting the changes to the desired state
+3. The device's management client monitors its assigned Git repository for changes
+4. When the device's management client notices a difference between the current (running) state and the desired state, it MUST pull down and attempt to apply the new desired state
+
+**Applying the Desired State:**
+- The device attempts to apply the desired state to become new current state
+- While the new desired state is being applied, the device's management client MUST report progress on state changes using the Device API
+
+#### 9.6.3 Deployment Status
+
+The deployment status is sent to the workload orchestration web service using the Device API when there is a change in the deployment state.
+
+**Deployment status rules:**
+- The state is `Pending` once the device management client has received the updated desired state but has not started applying it. When reporting this state indicate the reason (such as waiting on Policy agent or waiting on other applications)
+- The state is `Installing` once the device management client has started the process of applying the desired state
+- The state is `Failure` if at any point the desired state fails to be applied. When reporting a Failure state the error message and error code MUST be reported
+- The state is `Success` once the desired state has been applied completely
+
+### 9.7 Consuming Workload Observability Data
+
+Workload Fleet Management or observability platform suppliers MAY choose to consume workload observability data exported from the end user's devices to provide valuable services to the end user.
+
+The end user MAY choose to export observability data from Margo compliant devices to other OpenTelemetry collectors or backends within their environment that is not on the device.
+
+## 10. Device Interoperability
+
+### 10.1 Edge Compute Devices Overview
+
+Within Margo, devices are represented by compute hardware that host Margo compliant workloads within the customer's environment. Devices are defined by the roles they can provide the Margo ecosystem. Each role has its own requirements which enable unique functionality such as cluster management. These Margo devices ensure the Workload Developers with guaranteed functionality they can depend on being present in every compliant device. These devices are onboarded and managed by a single Workload Fleet Manager.
+
+The promise the Margo specification provides Device vendors the following benefits:
+- By producing a Margo compliant device it is compatible with ALL Margo compliant Fleet Managers
+- Device vendors have freedom of implementation regarding the specific components, i.e. oci container runtime, as long as the component provides the agreed upon functionality the Application Vendors expect
+
+### 10.2 Base Device Requirements
+
+All Margo-compliant devices MUST support:
+- **TPM support**
+- **Secure Boot**
+- **Attestation**
+- **Zero Trust Network Access (ZTNA)**
+
+### 10.3 Device Role Requirements
+
+Within Margo, devices are represented by compute hardware that runs within the customer's environment to enable the system with Margo Compliant Workloads. An Edge Compute within Margo is initially referenced as a "Device" which represents the initial lifecycle stage. Once the device is onboarded within the Workload Orchestration Software, it assumes a role based on capabilities.
+
+#### 10.3.1 Cluster Leader Role
+
+The Cluster Leader Role within Margo describes devices that have the ability to manage the cluster of one or more worker nodes that are connected. Additionally, Cluster Leader can also host Margo compliant workloads.
+
+**Functional Requirements:**
+- Host the Workload Fleet Management Client (enables functionality outlined within the Workload Management section)
+- Enable management functionality via Kubernetes API
+- Host additional components:
+  - Helm Client (Provider)
+  - OCI Container Runtime
+  - OTEL Collector
+  - Policy Agent
+- Host Device Fleet Management Client
+
+#### 10.3.2 Cluster Worker Role
+
+The Cluster Worker Role within Margo describes devices that have a limited amount of compute capacity that can still run Margo compliant workloads. This role is managed via the Cluster Leader.
+
+**Functional Requirements:**
+- Enable Worker Node functionality within a Kubernetes Cluster via the kubelet service
+- Host additional components:
+  - OCI Container Runtime
+  - OTEL Collector
+  - Policy Agent
+- Host Device Fleet Management Client
+
+#### 10.3.3 Standalone Cluster Role
+
+The Standalone Cluster Role within Margo describes devices that have additional compute capacity to enable a wide range of functions within the ecosystem.
+
+**Functional Requirements:**
+- Enables both Cluster Leader and Worker roles concurrently in a single device
+- See Cluster Leader Role and Cluster Worker Role for specific requirements
+- The Standalone Cluster role has the ability to transition into either the Cluster Leader or Cluster Worker at a later stage in its lifecycle deployment
+
+#### 10.3.4 Standalone Device Role
+
+The Standalone Device role represents a device that can host Margo Compliant Workloads. This device role is not intended to be utilized within a clustered configuration and typically consists of devices within limited amount of resources to run workloads.
+
+**Functional Requirements:**
+- Host the Workload Fleet Management Client (enables functionality outlined within the Workload Management section)
+- Host additional components:
+  - OCI Container Runtime
+  - OTEL Collector
+  - Policy Agent
+- Host Device Fleet Management Client
+
+### 10.4 Collecting Workload Observability Data
+
+The device owner MUST deploy, and configure, an OpenTelemetry collector on their device. The device owner MAY choose the deployment model they wish to follow but MUST use one of the following approaches.
+
+#### 10.4.1 OpenTelemetry Collector Deployment Requirements
+
+- For standalone and clustered devices there MUST be at least one OpenTelemetry collector deployed to collect the observability data required
+- The Device owner MAY choose to deploy multiple OpenTelemetry collectors with each collector receiving different parts of the observability data as long as all required observability data is collected
+- For multi-node capable clusters the device owner MAY chose to use the DaemonSet deployment model to ensure there is an OpenTelemetry collector running on each node
+- For multi-node capable clusters the device owner MUST ensure the communication between workloads, and collector, from one node to a collector on a different node is secure
+- The device owner MUST NOT require the use of the sidecar deployment model at this time
+- The device owner MUST NOT pre-configure exporters to send observability data from the device because the end user must control what observability data is exported
+- The device owner MUST NOT attempt to inject auto-instrumentation into any compliant workloads running on the device that are not owned by the device owner
+
+#### 10.4.2 Container Platform Observability Requirements
+
+**Kubernetes Requirements:**
+For devices running Kubernetes the following is a minimum list of observability data that MUST be provided:
+
+- **Cluster observability data MUST be collected**
+  - It is recommended the Device Owner use the Kubernetes Cluster Receiver with the default configuration
+  - If not using the Kubernetes Cluster Receiver they MUST provide the same output as the default configuration
+- **Cluster events observability data MUST be collected**
+  - It is recommended to use either the Kubernetes Objects Receiver or Kubernetes Events Receiver with default configuration
+  - If not using these receivers they MUST provide the same output as the default configuration
+- **Node, Pod and Container observability data MUST be collected**
+  - It is recommended to use the Kubelet Stats Receiver with default configuration
+  - If not using this receiver they MUST provide the same output as the default configuration
+- **Metadata identifying the observability data's source MUST be added**
+  - It is recommended to use the Kubernetes Attributes Processor with default configuration
+  - If not using this processor they MUST provide the same metadata as the default configuration
+
+**Standalone Device Container Platforms:**
+For devices running non-clustered container platforms such as Docker or Podman:
+
+- **Container observability data MUST be collected**
+  - It is recommended to use the Docker Stats Receiver or Podman Stats Receiver with default configuration
+  - If not using these receivers they MUST provide the same output as the default configuration
+
+**General Requirements:**
+- The collector MUST receive data using the OLTP format
+- It is recommended to use the OLTP Receiver to allow workloads to send observability data to the collector
+- **Host observability data MUST be collected**
+  - It is recommended to use the Host Metrics Receiver with default configuration
+  - If not using this receiver they MUST provide the same output as the default configuration
+
+#### 10.4.3 Workload Fleet Management Client Observability Requirements
+
+For several reasons, it is recommended the Workload Fleet Management Client be deployed as a containerized workload. If it is deployed this way, the workload's resource utilization observability data is captured automatically as part of the container platform observability requirements.
+
+If the device owner chooses not to deploy the Workload Fleet Management Client as a containerized workload they MUST ensure resource usage observability data is available from the OpenTelemetry collector for their client.
+
+#### 10.4.4 Connecting to the OpenTelemetry Collector
+
+In order for a workload to publish its observability data to the collector on the standalone device or cluster the device own MUST inject the following environment variables into each container:
+
+| Environment Variable | Description |
+|---------------------|-------------|
+| GRPC_OTEL_EXPORTER_OTLP_ENDPOINT | (Optional) The URL for the workload to use to connect to the OpenTelemetry collector using gRPC |
+| HTTP_OTEL_EXPORTER_OTLP_ENDPOINT | (Required) The URL for the workload to use to connect to the OpenTelemetry collector HTTP + protobuf |
+| OTEL_EXPORTER_OTLP_CERTIFICATE | (Optional) The PATH for the client certificate (in PEM format) to use for secure connections to the OpenTelemetry Collector |
+| OTEL_EXPORTER_OTLP_PROTOCOL | (Optional) "grpc" if the preferred protocol is gRPC, "http/protobuf" if the preferred protocol is HTTP + protobuf. The default is "http/protobuf" |
+
+#### 10.4.5 Exporting Observability Data
+
+End users MUST be able to export observability data from a standalone device or cluster to collectors, or backends, onsite or in the cloud if they wish to make the information available to enable remote monitoring and diagnostics.
+
+OpenTelemetry allows using either a push or pull approach for getting data from a collector. Cloud based workload fleet management or observability platform service vendors should NOT require a pull method for collecting observability data because most end users will not allow devices to be exposed to the internet because of security concerns.
+
+## 11. Workload Observability
+
+### 11.1 Overview
+
+Observability involves the collection and analysis of information produced by a system to monitor its internal behavior.
+
+Observability data is captured using the following signals:
+- **Metrics:** A numerical measurement in time used to observe change over a period of time or configured limits. For example, memory consumption, CPU Usage, available disk space.
+- **Logs:** Text outputs produced by a running system/workloads to provide information about what is happening. For example, outputs to capture security events such as failed login attempts, or unexpected conditions such as errors.
+- **Traces:** Contextual data used to follow a request's entire path through a distributed system. For example, trace data can be used to identify bottlenecks, or failure points, within a distributed system.
+
+### 11.2 Margo's Workload Observability Scope
+
+Margo's workload observability scope is limited to the following areas:
+- The device's container platform
+- The device's Workload Fleet Management Client
+- The compliant workloads deployed to the device
+
+### 11.3 Intended Use Cases
+
+The workload observability data is intended to be used for purposes such as:
+- Monitoring the container platform's health and current state. This includes aspects such as memory, CPU, and disk usage as well as cluster, node, pod, and container availability, run state, and configured resource limits. This enables end users to make decisions such as whether or not a device can support more workloads, or has too many deployed.
+- Monitoring the Workload Fleet Management Client and containerized workload's state to ensure it is running correctly, performing as expected and not consuming more resource than expected.
+- To assist with debugging/diagnostics for workloads encountering unexpected conditions impacting their ability to run as expected.
+
+**Important:** Margo's workload observability is NOT intended to be used to monitor anything outside the device such as production processes, machinery, controllers, or sensors and should NOT be used for this purpose.
+
+### 11.4 Workload Observability Framework
+
+Workload observability data is made available using OpenTelemetry. OpenTelemetry, a popular open source specification, defines a common way for observability data to be generated and consumed.
+
+**Reasons for choosing OpenTelemetry:**
+- OpenTelemetry is based on an open source specification and not only an implementation
+- OpenTelemetry is widely adopted
+- OpenTelemetry has a large, and active, open source community
+- OpenTelemetry provides SDKs for many popular languages if people wish to use them
+- The OpenTelemetry community project has reusable components such as telemetry receivers for Kubernetes, Docker and the host system making integration easier
+- OpenTelemetry is vendor agnostic
+
+## 12. API Reference
+
+### 12.1 Margo Management API Specification
+
+The Margo Management API is used to enable communication between Margo compliant devices and orchestration solutions.
+
+### 12.2 Authorization and Security
+
+#### 12.2.1 Authorization Header
+
+For requests requiring authentication, a bearer token MUST be present in the message's Authorization header.
+
+You can get the access token by sending a request to the workload orchestration web service's token URL:
+
+```bash
+curl -X POST \
+-H "Content-Type: application/x-www-form-urlencoded" \
+-d "grant_type=client_credentials&client_id=<CLIENT_ID>&client_secret=<CLIENT_SECRET>" \
+<WOS_Token_URL>
 ```
 
-### C.3 Deployment Configuration Example
+Response:
+```json
+{
+  "access_token": "ACCESS_TOKEN",
+  "token_type": "Bearer",
+  "expires_in": 3600
+}
+```
+
+Set the Authorization header's value to `Bearer <ACCESS_TOKEN>` when making requests requiring authorization.
+
+#### 12.2.2 Payload Signing
+
+Steps for signing payloads:
+1. Generate a SHA-256 hash value for the request's body
+2. Create a digital signature using the message source certificate's private key to encrypt the hash value
+3. Base-64 encode the certificate's public key and digital signature in the format of `<public key>;<digital signature>`
+4. Include the base-64 encoded string in the request's `X-Payload-Signature` header
+
+#### 12.2.3 Verifying Signed Payloads
+
+Steps for verifying signed payloads:
+1. Retrieve the public key from the `X-Payload-Signature` header
+2. Decrypt the digital signature using the public key to get the original hash value
+3. Generate a SHA-256 hash value for the request's body
+4. Ensure the generated hash value matches the hash value from the message
+
+### 12.3 Workload API
+
+#### 12.3.1 Desired State API
+
+The desired state is expressed as a Kubernetes custom resource definition and made available to the device's management client as a YAML document using the OpenGitOps pattern.
+
+**ApplicationDeployment Definition:**
 
 ```yaml
 apiVersion: application.margo.org/v1alpha1
 kind: ApplicationDeployment
 metadata:
   annotations:
-    applicationId: com-example-analytics
-    id: 550e8400-e29b-41d4-a716-446655440000
-  name: analytics-deployment
-  namespace: production
+    id:
+    applicationId:
+  name:
+  namespace:
 spec:
   deploymentProfile:
-    type: helm.v3
+    type:
     components:
-      - name: database
+      - name:
         properties:
-          repository: oci://registry/database
-          revision: 3.2.1
-      - name: analytics
-        properties:
-          repository: oci://registry/analytics
-          revision: 2.1.0
   parameters:
-    dbSize:
-      value: "100Gi"
+    param:
+      value:
       targets:
-        - pointer: storage.size
-          components: ["database"]
+        - pointer:
+          components: []
 ```
 
+**Top-level Attributes:**
+
+| Attribute | Type | Required? | Description |
+|-----------|------|-----------|-------------|
+| apiVersion | string | Y | Identifier of the version of the API the object definition follows |
+| kind | string | Y | Must be ApplicationDeployment |
+| metadata | Metadata | Y | Metadata element specifying characteristics about the application deployment |
+| spec | Spec | Y | Spec element that defines deployment profile and parameters associated with the application deployment |
+
+**Metadata Attributes:**
+
+| Attribute | Type | Required? | Description |
+|-----------|------|-----------|-------------|
+| annotations | Annotations | Y | Defines the application ID and unique identifier associated to the deployment specification |
+| name | string | Y | When deploying to Kubernetes, the manifest's name |
+| namespace | string | Y | When deploying to Kubernetes, the namespace the manifest is added under |
+
+**Annotations Attributes:**
+
+| Attribute | Type | Required? | Description |
+|-----------|------|-----------|-------------|
+| applicationId | string | Y | An identifier for the application. Must be lower case letters and numbers and MAY contain dashes. MUST NOT be more than 200 characters |
+| id | string | Y | The unique identifier UUID of the deployment specification. Needs to be assigned by the Workload Orchestration Software |
+
+#### 12.3.2 Application Package API - Application Description
+
+The application description has the purpose of presenting the application, e.g., on an application catalog or marketplace from where an end user selects an application to be installed.
+
+**Top-level Attributes:**
+
+| Attribute | Type | Required? | Description |
+|-----------|------|-----------|-------------|
+| apiVersion | string | Y | Identifier of the version of the API the object definition follows |
+| kind | string | Y | Specifies the object type; must be 'application' |
+| metadata | Metadata | Y | Metadata element specifying characteristics about the application deployment |
+| deploymentProfiles | []DeploymentProfile | Y | Deployment profiles for the application |
+| parameters | map[string]Parameter | N | Configurable parameters for the application |
+| configuration | Configuration | N | Configuration layout and validation rules |
+
+**Metadata Attributes:**
+
+| Attribute | Type | Required? | Description |
+|-----------|------|-----------|-------------|
+| id | string | Y | An identifier for the application. Must be lower case letters and numbers and MAY contain dashes. MUST NOT be more than 200 characters |
+| name | string | Y | The application's official name for display purposes |
+| description | string | N | Description of the application |
+| version | string | Y | The application's version |
+| catalog | Catalog | Y | Catalog element specifying the application catalog details |
+
+**DeploymentProfile Attributes:**
+
+| Attribute | Type | Required? | Description |
+|-----------|------|-----------|-------------|
+| type | string | Y | Defines the type of deployment configuration. Allowed values are helm.v3 and compose |
+| components | []Component | Y | Component element indicating the components to deploy when installing the application |
+
+**Component Attributes:**
+
+| Attribute | Type | Required? | Description |
+|-----------|------|-----------|-------------|
+| name | string | Y | A unique name used to identify the component package. Must be lower case letters and numbers and MAY contain dashes |
+| properties | ComponentProperties | Y | A dictionary element specifying the component package's deployment details |
+
+**ComponentProperties for helm.v3:**
+
+| Attribute | Type | Required? | Description |
+|-----------|------|-----------|-------------|
+| repository | string | Y | The URL indicating the helm chart's location |
+| revision | string | Y | The helm chart's full version |
+| wait | bool | N | If True, indicates the device MUST wait until the helm chart has finished installing before installing the next helm chart |
+| timeout | string | N | The time to wait for the component's installation to complete. Format is "##m##s" |
+
+**ComponentProperties for compose:**
+
+| Attribute | Type | Required? | Description |
+|-----------|------|-----------|-------------|
+| packageLocation | string | Y | The URL indicating the Compose package's location |
+| keyLocation | string | N | The public key used to validate the digitally signed package. When signing the package PGP MUST be used |
+| wait | bool | N | If True, indicates the device MUST wait until the Compose file has finished starting up |
+| timeout | string | N | The time to wait for the component's installation to complete |
+
+### 12.4 Device API
+
+#### 12.4.1 Device Capabilities
+
+Devices MUST provide the workload orchestration service with its capabilities and characteristics using the Device API's device capabilities endpoint.
+
+**Route and HTTP Methods:**
+- `POST /device/{deviceId}/capabilities`
+- `PUT /device/{deviceId}/capabilities`
+
+**Route Parameters:**
+
+| Parameter | Type | Required? | Description |
+|-----------|------|-----------|-------------|
+| {deviceId} | string | Y | The device's Id registered with the workload orchestration web service during onboarding |
+
+**Request Body Fields:**
+
+| Field | Type | Required? | Description |
+|-------|------|-----------|-------------|
+| apiVersion | string | Y | Identifier of the version of the API the object definition follows |
+| kind | string | Y | Must be DeviceCapabilities |
+| properties | Properties | Y | Element that defines characteristics about the device |
+
+**Properties Fields:**
+
+| Field | Type | Required? | Description |
+|-------|------|-----------|-------------|
+| id | string | Y | Unique deviceID assigned to the device via the Device Owner |
+| vendor | string | Y | Defines the device vendor |
+| modelNumber | string | Y | Defines the model number of the device |
+| serialNumber | string | Y | Defines the serial number of the device |
+| roles | []string | Y | Element that defines the device role it can provide. MUST be one of: Standalone Cluster, Cluster Leader, or Standalone Device |
+| resources | []Resource | Y | Element that defines the device's resources available to applications |
+| peripherals | []Peripheral | Y | Element that defines the device's peripherals available to applications |
+| interfaces | []Interface | Y | Element that defines the device's interfaces available to applications |
+
+**Example Request:**
+
+```json
+{
+  "apiVersion": "device.margo/v1",
+  "kind": "DeviceCapability",
+  "properties": {
+    "id": "northstarida.xtapro.k8s.edge",
+    "vendor": "Northstar Industrial Applications",
+    "modelNumber": "332ANZE1-N1",
+    "serialNumber": "PF45343-AA",
+    "roles": ["standalone cluster", "cluster lead"],
+    "resources": {
+      "memory": "64.0 GB",
+      "storage": "2000 GB",
+      "cpus": [{
+        "architecture": "Intel x64",
+        "cores": 24,
+        "frequency": "6.2 GHz"
+      }]
+    },
+    "peripherals": [{
+      "name": "NVIDIA GeForce RTX 4070 Ti SUPER OC Edition Graphics Card",
+      "type": "GPU",
+      "modelNumber": "TUF-RTX4070TIS-O16G",
+      "properties": {
+        "manufacturer": "NVIDIA",
+        "series": "NVIDIA GeForce RTX 40 Series",
+        "gpu": "GeForce RTX 4070 Ti SUPER",
+        "ram": "16 GB",
+        "clockSpeed": "2640 MHz"
+      }
+    }],
+    "interfaces": [
+      {
+        "name": "RTL8125 NIC 2.5G Gigabit LAN Network Card",
+        "type": "Ethernet",
+        "modelNumber": "RTL8125",
+        "properties": {
+          "maxSpeed": "2.5 Gbps"
+        }
+      }
+    ]
+  }
+}
+```
+
+#### 12.4.2 Deployment Status
+
+While applying a new desired state the device's management client MUST provide the workload orchestration web service with an indication of the current status using the Device API's device status endpoint.
+
+**Route and HTTP Methods:**
+- `POST /device/{deviceId}/deployment/{deploymentId}/status`
+
+**Route Parameters:**
+
+| Parameter | Type | Required? | Description |
+|-----------|------|-----------|-------------|
+| {deviceId} | string | Y | The device's Id registered with the workload orchestration solution during onboarding |
+| {deploymentId} | string | Y | The deployment Id the status is being reported for |
+
+**Request Body Fields:**
+
+| Field | Type | Required? | Description |
+|-------|------|-----------|-------------|
+| apiVersion | string | Y | Identifier of the version of the API the object definition follows |
+| kind | string | Y | Must be DeploymentStatus |
+| deploymentId | string | Y | The unique identifier UUID of the deployment specification |
+| status | []status | Y | Element that defines overall deployment status |
+| components | []components | Y | Element that defines the individual component's deployment status |
+
+**Status Fields:**
+
+| Field | Type | Required? | Description |
+|-------|------|-----------|-------------|
+| state | string | Y | Current state of the overall deployment. MUST be one of: Pending, Installing, Installed, Failed |
+| error | Error | N | Element that defines the overall installation error if one occurred |
+
+**Example Request:**
+
+```json
+{
+  "apiVersion": "deployment.margo/v1",
+  "kind": "DeploymentStatus",
+  "deploymentId": "a3e2f5dc-912e-494f-8395-52cf3769bc06",
+  "status": {
+    "state": "pending",
+    "error": {
+      "code": "",
+      "message": ""
+    }
+  },
+  "components": [
+    {
+      "name": "digitron-orchestrator",
+      "state": "pending",
+      "error": {
+        "code":"",
+        "message":""
+      }
+    }
+  ]
+}
+```
+
+### 12.5 Onboarding API
+
+#### 12.5.1 Device Onboarding
+
+**Route and HTTP Methods:**
+- `POST /onboarding/`
+
+Note: This API needs to be defined with specific request and response body specifications.
+
+#### 12.5.2 Certificate API (Root CA Download)
+
+In order to facilitate secure communication between the device's management client and workload orchestration web service the workload orchestration web service's root CA certificate must be downloaded using the Onboarding API's certificate endpoint.
+
+**Route and HTTP Methods:**
+- `GET /onboarding/certificate`
+
+**Response Body:**
+
+```json
+{
+  "certificate": "<base-64 encoded certificate text>"
+}
+```
+
+## 13. Security Requirements
+
+### 13.1 Authentication and Authorization
+
+All API communications MUST use bearer token authentication with proper certificate-based payload signing.
+
+### 13.2 Device Security
+
+Devices MUST implement:
+- TPM-based hardware security
+- Secure boot processes
+- Attestation mechanisms
+- Zero Trust Network Access (ZTNA)
+
+### 13.3 Communication Security
+
+All communications between components MUST use:
+- TLS encryption
+- Certificate-based authentication
+- Payload signing and verification
+- Industry-standard security protocols
+
+## 14. Compliance and Conformance
+
+### 14.1 Compliance Requirements
+
+To be Margo-compliant, implementations MUST:
+- Support all mandatory API endpoints
+- Implement required security mechanisms
+- Pass compliance test suite validation
+- Support specified application packaging formats
+
+### 14.2 Conformance Testing
+
+The Margo compliance test suite validates:
+- API compatibility
+- Security implementation
+- Application package handling
+- Device onboarding processes
+- Observability data collection
+
+## 15. Implementation Guidelines
+
+### 15.1 Contributing to Margo
+
+#### 15.1.1 General Requirements
+
+Contributions to Margo are typically very welcome! However, when adding new enhancements, maintainers must make a trade-off between the added value and the added cost of maintenance. It is recommended to first create a new issue on Github before starting the actual implementation and wait for feedback from the maintainers.
+
+#### 15.1.2 Bug Fixes
+
+Bug and security fixes are always welcome and take the highest priority.
+
+#### 15.1.3 Contribution Checklist
+
+- Contributions to the Specification must be covered by a Corporate CLA or Individual CLA
+- Any code changes must be accompanied with automated tests
+- Add the required copyright header to each new file introduced if appropriate
+- Add `signed-off` to all commits to certify the "Developer's Certificate of Origin"
+- Structure your commits logically, in small steps
+- Base commits on top of latest `pre-draft` branch
+
+#### 15.1.4 Signing the CLA
+
+If you have not yet signed the Individual CLA, or your organization has not yet signed the Corporate CLA, the LFX EasyCLA bot will prompt you to follow the appropriate steps to authorize your contribution.
+
+#### 15.1.5 Developer's Certificate of Origin
+
+By making a contribution to this project, I certify that:
+
+(a) The contribution was created in whole or in part by me and I have the right to submit it under the open source license indicated in the file; or
+
+(b) The contribution is based upon previous work that, to the best of my knowledge, is covered under an appropriate open source license and I have the right under that license to submit that work with modifications, whether created in whole or in part by me, under the same open source license (unless I am permitted to submit under a different license), as indicated in the file; or
+
+(c) The contribution was provided directly to me by some other person who certified (a), (b) or (c) and I have not modified it.
+
+(d) I understand and agree that this project and the contribution are public and that a record of the contribution (including all personal information I submit with it, including my sign-off) is maintained indefinitely and may be redistributed consistent with this project or the open source license(s) involved.
+
+### 15.2 Best Practices
+
+- Implement comprehensive logging and monitoring
+- Follow secure development practices
+- Use industry-standard containerization technologies
+- Implement proper error handling and recovery
+- Design for offline and intermittent connectivity scenarios
+
+### 15.3 Documentation Generation Process
+
+Some of the resources being used in the Margo APIs are being manually specified using MarkDown files. In this case mkdocs is used to generate the documentation in HTML format.
+
+For others, the modeling language LinkML is being used to generate the documentation. In this case linkml is used to generate the MarkDown documents that are integrated with the above mentioned documents before mkdocs can generate the HTML documents.
+
 ---
 
-## Annex D (informative) - Best Practices
+## Copyright and License
 
-### D.1 Application Development Best Practices
+Copyright © 2024 Margo
 
-#### D.1.1 Dual Deployment Support
-Applications SHOULD provide both Helm and Compose deployment profiles for maximum compatibility.
-
-#### D.1.2 Parameter Design
-- Group related parameters logically
-- Provide sensible defaults
-- Include comprehensive validation
-- Document all parameters clearly
-
-#### D.1.3 Resource Management
-- Define CPU and memory limits
-- Specify minimum requirements
-- Support resource scaling
-- Monitor resource usage
-
-### D.2 Device Implementation Best Practices
-
-#### D.2.1 Git Repository Management
-- Implement efficient polling mechanisms
-- Handle network interruptions gracefully
-- Maintain local state cache
-- Support rollback capabilities
-
-#### D.2.2 Container Platform Selection
-- Choose platforms based on use case
-- Consider resource constraints
-- Implement proper isolation
-- Support multi-tenancy where needed
-
-### D.3 Fleet Management Best Practices
-
-#### D.3.1 Scalability Considerations
-- Design for thousands of devices
-- Implement efficient state distribution
-- Use caching appropriately
-- Monitor system performance
-
-#### D.3.2 Security Implementation
-- Encrypt all communications
-- Implement strong authentication
-- Audit all operations
-- Regular security updates
-
-### D.4 Observability Best Practices
-
-#### D.4.1 Data Collection
-- Collect essential metrics only
-- Implement sampling for high-volume data
-- Use structured logging
-- Correlate traces with logs
-
-#### D.4.2 Storage and Retention
-- Define retention policies
-- Implement data aggregation
-- Archive historical data
-- Ensure data privacy
+This specification is licensed under [appropriate open source license].
 
 ---
 
-## Annex E (normative) - Compliance Test Specifications
-
-### E.1 Test Framework Overview
-
-#### E.1.1 Test Categories
-- Interface compliance tests
-- Interoperability validation
-- Security verification
-- Performance benchmarks
-
-#### E.1.2 Test Execution
-All tests SHALL be:
-- Automated where possible
-- Reproducible
-- Publicly documented
-- Version controlled
-
-### E.2 Device Compliance Tests
-
-#### E.2.1 Interface Tests
-- Git repository monitoring
-- State application verification
-- API implementation validation
-- Error handling verification
-
-#### E.2.2 Platform Tests
-- Container runtime validation
-- Resource management verification
-- Network configuration tests
-- Storage functionality tests
-
-### E.3 Application Compliance Tests
-
-#### E.3.1 Package Structure
-- YAML schema validation
-- File structure verification
-- Resource availability checks
-- Deployment profile validation
-
-#### E.3.2 Deployment Tests
-- Installation verification
-- Parameter application tests
-- Update functionality
-- Removal verification
-
-### E.4 Orchestration Compliance Tests
-
-#### E.4.1 Management Tests
-- Device onboarding validation
-- State management verification
-- Multi-device coordination
-- Catalog functionality
-
-#### E.4.2 Integration Tests
-- Cross-vendor scenarios
-- End-to-end workflows
-- Scalability validation
-- Performance benchmarks
-
-### E.5 Test Results and Certification
-
-#### E.5.1 Results Format
-Test results SHALL include:
-- Test execution timestamp
-- Version information
-- Pass/fail status
-- Detailed error logs
-
-#### E.5.2 Certification Process
-- Submit test results
-- Independent verification
-- Public results posting
-- Continuous monitoring
-
----
-
-## Document Information
-
-- **Copyright**: © 2024 Margo, Joint Development Foundation Projects, LLC
-- **License**: Royalty-free open standard
-- **Status**: Pre-draft specification (not for production use)
-- **Repository**: github.com/margo/specification
-- **Website**: specification.margo.org
+**Disclaimer:** This is a work-in-progress draft specification. Do not attempt to implement this version or reference it as authoritative. The specification is subject to change without notice.
