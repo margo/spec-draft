@@ -15,34 +15,6 @@ This document specifies the Margo Edge Interoperability Standard, an open framew
 
 ---
 
-## Table of Contents
-
-1. [Scope](#1-scope)
-2. [Normative References](#2-normative-references)
-3. [Terms and Definitions](#3-terms-and-definitions)
-4. [Symbols and Abbreviated Terms](#4-symbols-and-abbreviated-terms)
-5. [Conformance](#5-conformance)
-6. [Overview and General Principles](#6-overview-and-general-principles)
-7. [Personas and Use Cases](#7-personas-and-use-cases)
-8. [System Architecture](#8-system-architecture)
-9. [Device Requirements and Architecture](#9-device-requirements-and-architecture)
-10. [Application Package Specifications](#10-application-package-specifications)
-11. [Workload Management Interface](#11-workload-management-interface)
-12. [Fleet Management Specifications](#12-fleet-management-specifications)
-13. [Observability Framework](#13-observability-framework)
-14. [API Specifications](#14-api-specifications)
-15. [Interoperability Requirements](#15-interoperability-requirements)
-16. [Security Considerations](#16-security-considerations)
-
-### Annexes
-- [Annex A (normative) - Application Description Schema](#annex-a-normative---application-description-schema)
-- [Annex B (normative) - Deployment State Schema](#annex-b-normative---deployment-state-schema)
-- [Annex C (informative) - Implementation Examples](#annex-c-informative---implementation-examples)
-- [Annex D (informative) - Best Practices](#annex-d-informative---best-practices)
-- [Annex E (normative) - Compliance Test Specifications](#annex-e-normative---compliance-test-specifications)
-
----
-
 ## 1 Scope
 
 ### 1.1 General
