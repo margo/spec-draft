@@ -97,7 +97,13 @@ The following documents are referred to in this specification:
 
 **Component Registry:** A Component Registry holds Components (e.g., Helm Charts and Compose Archives) for Application Packages. When an application gets deployed through a Workload Fleet Manager, the components (linked within an Application Description) are requested from the Component Registry. This can be implemented, for example, as an OCI Registry.
 
-**Workload Marketplace:** Workload Marketplace is the location where end users purchase the rights to access Workloads from a vendor. Functional Requirements include: providing users with a list of Workloads available for purchase, enabling users to purchase access rights to a Workload, and enabling users with the meta data to access associated Workload Registries/Repositories. Note: The Workload Marketplace component is out of scope for Project Margo.
+**Workload Marketplace:** Workload Marketplace is the location where end users purchase the rights to access Workloads from a vendor. 
+Functional Requirements include: 
+- Providing users with a list of Workloads available for purchase
+- Enabling users to purchase access rights to a Workload
+- Enabling users with the meta data to access associated Workload Registries/Repositories.
+
+> Note: The Workload Marketplace component is out of scope for Project Margo.
 
 ## Personas and Use Cases
 
