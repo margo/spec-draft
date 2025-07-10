@@ -103,6 +103,8 @@ The following documents are referred to in this specification:
 
 ### Persona Categories
 
+<img width="1053" height="354" alt="image" src="https://github.com/user-attachments/assets/9c91a9de-7389-485d-bfbb-e2c229c6c7cc" />
+
 #### End Users
 - Evaluates the best-in-class products offered by the suppliers
 - Consumes products provided by the suppliers
