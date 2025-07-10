@@ -360,15 +360,15 @@ The deployment profiles specified in the application description SHALL be define
 - **For Kubernetes devices:** Applications must be packaged as Helm charts using Helm (version 3)
 - **For Compose devices:** Applications must be packaged as a tarball file containing the compose.yml file and any additional artifacts referenced by the Compose file. It is highly recommended to digitally sign this package. When digitally signing the package PGP encryption MUST be used.
 
-If either one cannot be implemented it MAY be omitted but Margo RECOMMENDS defining deployment profiles as both Helm chart AND Compose components to strengthen interoperability and applicability.
-
 > Investigation Needed: We plan to do a security review of this package definition later. During this review we will revisit the way the Compose tarball file should be > > > signed. We will also discuss how we should handle secure container registries that require a username and password.
 > 
 > Investigation Needed: We need to determine what impact, if any, using 3rd party helm charts has on being Margo compliant.
 > 
 > Investigation Needed: Missing in the current specification are ways to define the compatibility information (resources required to run, application dependencies) as well as required infrastructure services such as storage, message queues/bus, reverse proxy, or authentication/authorization/accounting.
 
-Note: A device running the application will only install the application using either Compose files or Helm Charts but not both.
+If either one cannot be implemented it MAY be omitted but Margo RECOMMENDS defining deployment profiles as both Helm chart AND Compose components to strengthen interoperability and applicability.
+
+> Note: A device running the application will only install the application using either Compose files or Helm Charts but not both.
 
 ## Example Workflow
 
@@ -413,7 +413,7 @@ Compliant [workloads](#workload) MAY choose to expose workload specific observab
 - [Workload suppliers](#workload-supplier) SHOULD NOT expect their [workloads](#workload) to be auto-instrumented by anything outside of their control
 - A [workload supplier](#workload-supplier) MAY choose an observability framework other than OpenTelemetry but it MUST be self-contained within the deployment of their [workload](#workload)
 - If an alternative approach is taken, it is NOT recommended [workload suppliers](#workload-supplier) publish their observability data outside the device/cluster by using any other means other than the OpenTelemetry collector
-- If the [workload supplier](#workload-supplier) chooses to export data without using the OpenTelemetry collector they MUST NOT do this without the end user's approval
+- If the [workload supplier](#workload-supplier) chooses to export data without using the OpenTelemetry collector, they MUST NOT do this without the end user's approval
 
 ## Local Registries
 
@@ -530,7 +530,7 @@ The Management Interface MUST provide the following functionality:
 
 ### Configuration Requirements
 
-The Management Interface MUST allow end user configuration of:
+The Management Interface MUST allow end-user configuration of:
 - **Downtime configuration:** Ensures the device's management client is not retrying communication during known downtime. Communication errors MUST be ignored during this configurable period.
 - **Polling Interval Period:** Configurable time period indicating the hours in which the device's management client checks for updates to the device's desired state
 - **Polling Interval Rate:** Rate for how frequently the device's management client checks for updates to the device's desired state
@@ -546,6 +546,9 @@ The onboarding process includes:
 5. Device's management client receives the client Id, client secret and token endpoint URL used to generate a bearer token
 6. Device's management client receives the URL for the Git repository containing its desired state and an associated access token for authentication
 7. Device capabilities information is sent from the device to the workload orchestration web service using the [Device API](#device-api)
+
+<img width="558" height="942" alt="image" src="https://github.com/user-attachments/assets/f0eae282-7f87-46ff-b101-75ff8bfd5407" />
+
 
 ### Configuring the Workload Fleet Management Web Service URL
 
@@ -580,6 +583,11 @@ Once the edge device has a message prepared for the [Workload Fleet Management's
 4. The [Workload Fleet Management's](#workload-fleet-manager) web service treats the request's payload as envelope structure, and receives the certificate identifier
 5. The [Workload Fleet Management's](#workload-fleet-manager) web service computes digest from the payload, and verifies the signature using the device certification
 6. The payload is then processed by the [Workload Fleet Management's](#workload-fleet-manager) web service
+
+### GitOps Service Enrollment
+**Authorization methods for the Desired State Git Repository**
+- Git access tokens shall be provided to the device's management client. These access tokens MUST be tied to a dedicated non-user account for access where credentials are frequently rotated and short lived.
+- Need to support accessing rotations of tokens
 
 ## Device Capability Reporting
 
@@ -655,7 +663,6 @@ The promise the Margo specification provides Device vendors the following benefi
 - Cluster Leader
 - Cluster Worker
 - Standalone Device
-> Note: Additional device roles will be introduced as the specification matures.
 
 ## Base Device Requirements
 
@@ -723,8 +730,14 @@ The device owner MUST deploy, and configure, an OpenTelemetry collector on their
 ### OpenTelemetry Collector Deployment Requirements
 
 - For standalone and clustered devices there MUST be at least one OpenTelemetry collector deployed to collect the observability data required
-- The Device owner MAY choose to deploy multiple OpenTelemetry collectors with each collector receiving different parts of the observability data as long as all required observability data is collected
+- The Device owner MAY choose to deploy multiple OpenTelemetry collectors with each collector receiving different parts of the observability data as long as all required observability data is collected.
+
+<img width="627" height="291" alt="image" src="https://github.com/user-attachments/assets/03ab6569-1fe4-4ffd-9a9d-b2182867e600" />
+
 - For multi-node capable clusters the device owner MAY chose to use the DaemonSet deployment model to ensure there is an OpenTelemetry collector running on each node
+
+<img width="668" height="299" alt="image" src="https://github.com/user-attachments/assets/0b10967b-399a-44b8-8652-fa876bfe16c8" />
+
 - For multi-node capable clusters the device owner MUST ensure the communication between [workloads](#workload), and collector, from one node to a collector on a different node is secure
 - The device owner MUST NOT require the use of the sidecar deployment model at this time
 - The device owner MUST NOT pre-configure exporters to send observability data from the device because the end user must control what observability data is exported
@@ -776,14 +789,128 @@ In order for a [workload](#workload) to publish its observability data to the co
 |---------------------|-------------|
 | GRPC_OTEL_EXPORTER_OTLP_ENDPOINT | (Optional) The URL for the [workload](#workload) to use to connect to the OpenTelemetry collector using gRPC |
 | HTTP_OTEL_EXPORTER_OTLP_ENDPOINT | (Required) The URL for the [workload](#workload) to use to connect to the OpenTelemetry collector HTTP + protobuf |
-| OTEL_EXPORTER_OTLP_CERTIFICATE | (Optional) The PATH for the client certificate (in PEM format) to use for secure connections to the OpenTelemetry Collector |
-| OTEL_EXPORTER_OTLP_PROTOCOL | (Optional) "grpc" if the preferred protocol is gRPC, "http/protobuf" if the preferred protocol is HTTP + protobuf. The default is "http/protobuf" |
+| OTEL_EXPORTER_OTLP_CERTIFICATE | (Optional)The PATH for the client certificate (in PEM format) to use for secure connections to the OpenTelemetry Collector. The workload must connect using the certificate if it is provided.|
+| OTEL_EXPORTER_OTLP_PROTOCOL | (Optional) "grpc" if the preferred protocol is gRPC, "http/protobuf" if the preferred protocol is HTTP + protobuf. The default is "http/protobuf" if nothing is provided for this environment variable. If the preferred protocol is "grpc" but no gRPC endpoint is provided, or if the workload client cannot connect via gRPC, the workload client connects using "http/protobuf". |
 
 ### Exporting Observability Data
 
 End users MUST be able to export observability data from a standalone device or cluster to collectors, or backends, onsite or in the cloud if they wish to make the information available to enable remote monitoring and diagnostics.
 
 OpenTelemetry allows using either a push or pull approach for getting data from a collector. Cloud based [workload fleet management](#workload-fleet-manager) or observability platform service vendors should NOT require a pull method for collecting observability data because most end users will not allow devices to be exposed to the internet because of security concerns.
+
+### Workload Observability Default Telemetry
+
+#### Metrics
+The following telemetry data is collected by using the default configurations for the receivers indicated above. You can find more information about each piece of telemetry from the receiver's documentation.
+
+Here's the markdown table based on the provided text:
+
+| Metric Group | Metric | Target | Kubernetes Cluster Receiver | Kubelet Stats Receiver | Docker Stats Receiver | Podman Stats Receiver | Host Metrics Receiver |
+|---|---|---|---|---|---|---|---|
+| CPU | Limit | Container | | X | | | |
+| CPU | Load Average (15m, 5m, 1m) | System | | | | | X |
+| CPU | Time | Container, Kubernetes Node, Kubernetes Pod, System | | X | | | X |
+| CPU | Request | Container | | X | | | |
+| CPU | Usage Kernel Mode | Container | | X | | | |
+| CPU | Usage Per CPU | Container | | X | | | |
+| CPU | Usage System | Container | | X | | | |
+| CPU | Usage Total | Container | | X | | X | |
+| CPU | Usage Use Mode | Container | | X | | | |
+| CPU | Utilization | Container, Kubernetes Node, Kubernetes Pod | | X | X | | X |
+| Disk | IO | Container, System | | X | | | X |
+| Disk | IO Read | Container | | X | | | |
+| Disk | IO Write | Container | | X | | | |
+| Disk | IO Time | System | | | | | X |
+| Disk | IO Time (Weighted) | System | | | | | X |
+| Disk | Operations | System | | | | | X |
+| Disk | Operations Pending | System | | | | | X |
+| Disk | Operation Time | System | | | | | X |
+| Disk | Total Read/Writes | System | | | | | X |
+| File System | Available | Container, Kubernetes Node, Kubernetes Pod | | X | | | |
+| File System | Capacity | Container, Kubernetes Node, Kubernetes Pod | | X | | | |
+| File System | Inodes | Kubernetes Volume, System | | X | | | X |
+| File System | Inodes Free | Volume | | X | | | |
+| File System | Inodes Used | Volume | | X | | | |
+| File System | Usage | Container, Kubernetes Node, Kubernetes Pod, System | | X | | | X |
+| Memory | Available | Container, Kubernetes Node, Kubernetes Pod | | X | | | |
+| Memory | File | Container | | X | | | |
+| Memory | Limit | Container | | X | X | | X |
+| Memory | Major Page Fault | Container, Kubernetes Node, Kubernetes Pod | | X | | | |
+| Memory | Page Faults | Container, Kubernetes Node, Kubernetes Pod | | X | | | |
+| Memory | Percent | Container | | X | | X | |
+| Memory | Request | Container | | X | | | |
+| Memory | RSS | Container, Kubernetes Node, Kubernetes Pod | | X | | | |
+| Memory | Total Cache | Container | | X | | | |
+| Memory | Usage | Container, Kubernetes Node, Kubernetes Pod, System | | X | X | | X |
+| Memory | Working Set | Container, Kubernetes Node, Kubernetes Pod | | X | | | |
+| Network | Connections | System | | | | | X |
+| Network | Errors | Kubernetes Node, Kubernetes Pod, System | | X | | | X |
+| Network | IO | Kubernetes Node, Kubernetes Pod, System | | X | | | X |
+| Network | IO Bytes Sent | Container | | X | | X | |
+| Network | IO Bytes Received | Container | | X | | X | |
+| Network | IO Packets | System | | | | | X |
+| Network | IO Packets Dropped | System | | | | | X |
+| Network | IO Packets Dropped (Incoming) | Container | | X | | | |
+| Network | IO Packets Dropped (Outgoing) | Container | | X | | | |
+| Paging | Faults | System | | | | | X |
+| Paging | Operations | System | | | | | X |
+| Paging | Usage | System | | | | | X |
+| Process | CPU Time | System | | | | | X |
+| Process | Disk IO | System | | | | | X |
+| Process | Memory Usage | System | | | | | X |
+| Process | Memory Virtual | System | | | | | X |
+| Processes | Count | System | | | | | X |
+| Processes | Created | System | | | | | X |
+| Resource Quota | Hard Limit | Various | X | | | | |
+| Resource Quota | Used | Various | X | | | | |
+| State | Ready | Container | | X | | | |
+| State | Restarts | Container | | X | | | |
+| State | Active Jobs | Cron Job | X | | | | |
+| State | Current Scheduled Nodes | Daemonset | X | | | | |
+| State | Desired Scheduled Nodes | Daemonset | X | | | | |
+| State | Misscheduled Modes | Daemonset | X | | | | |
+| State | Ready Nodes | Daemonset | X | | | | |
+| State | Available | Deployment | X | | | | |
+| State | Desired | Deployment | X | | | | |
+| State | Current Replicas | HPA | X | | | | |
+| State | Desired Replicas | HPA | X | | | | |
+| State | Max Replicas | HPA | X | | | | |
+| State | Min Replicas | HPA | X | | | | |
+| State | Active Pods | Job | X | | | | |
+| State | Desired Successful Pods | Job | X | | | | |
+| State | Failed Pods | Job | X | | | | |
+| State | Max Parallel Jobs | Job | X | | | | |
+| State | Successful Pods | Job | X | | | | |
+| State | Phase | Namespace | X | | | | |
+| State | Phase | Pod | X | | | | |
+| State | Available | Replicaset | X | | | | |
+| State | Desired | Replicaset | X | | | | |
+| State | Available | Replication Controller | X | | | | |
+| State | Desired | Replication Controller | X | | | | |
+| State | Current Pods | Stateful Set | X | | | | |
+| State | Desired Pods | Stateful Set | X | | | | |
+| State | Ready Pods | Stateful Set | X | | | | |
+| State | Updated Pods | Stateful Set | X | | | | |
+| Storage | Available | Volume | X | | | | |
+| Storage | Capacity | Volume | X | | | | |
+| Storage | Limit | Container | | X | | | |
+| Storage (Ephemeral) | Limit | Container | | X | | | |
+| Storage | Requests | Container | | X | | | |
+| Storage (Ephemeral) | Request | Container | | X | | | |
+
+#### Logs
+The Kubernetes Events receiver collects the event logs when using the default configuration. The Kubernetes Object Receiver must be configured to collect the desired logs. Container logs must be emitted using OTLP.
+
+#### Kubernetes Attributes Processor
+
+The following shows the attributes added to each signal when using the Kubernetes Attribute Processors' default configuration.
+
+- k8s.namespace.name
+- k8s.pod.name
+- k8s.pod.uid
+- k8s.pod.start_time
+- k8s.deployment.name
+- k8s.node.name
 
 # Workload Observability
 
@@ -824,7 +951,7 @@ The [workload observability](#workload-observability) data is intended to be use
 - The OpenTelemetry community project has reusable components such as telemetry receivers for Kubernetes, Docker and the host system making integration easier
 - OpenTelemetry is vendor agnostic
 
-# API Reference
+# Technical References
 
 ## Margo Management API Specification
 
@@ -836,7 +963,7 @@ The Margo Management API is used to enable communication between Margo compliant
 
 For requests requiring authentication, a bearer token MUST be present in the message's Authorization header.
 
-You can get the access token by sending a request to the workload orchestration web service's token URL:
+You can get the access token by sending a request to the workload orchestration web service's token URL, providing the device's client Id and secret.
 
 ```bash
 curl -X POST \
@@ -872,13 +999,11 @@ Steps for verifying signed payloads:
 3. Generate a SHA-256 hash value for the request's body
 4. Ensure the generated hash value matches the hash value from the message
 
-## Workload API
-
 ### Desired State API
 
 The desired state is expressed as a Kubernetes custom resource definition and made available to the device's management client as a YAML document using the OpenGitOps pattern.
 
-**ApplicationDeployment Definition:**
+**Application Deployment Definition:**
 
 ```yaml
 apiVersion: application.margo.org/v1alpha1
@@ -902,8 +1027,6 @@ spec:
         - pointer:
           components: []
 ```
-
-**Top-level Attributes:**
 
 | Attribute | Type | Required? | Description |
 |-----------|------|-----------|-------------|
