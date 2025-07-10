@@ -143,9 +143,11 @@ Provides a software package that enables End Users to manage their workloads and
 Provides hardware resources, such as CPU and memory, along with lifecycle support, such as firmware and BIOS updates
 
 **Platform Supplier**
-Provides operating system level software to abstract hardware resources, and optionally, container orchestration software on top of the operating system layer
+Provides operating system-level software to abstract hardware resources, and optionally, container orchestration software on top of the operating system layer
 
 ### Multiple Personas per Entity
+
+![image](https://github.com/user-attachments/assets/59a59b28-9c78-4260-b80f-6ecfecc33216)
 
 In some cases, a single entity, such as a company or organization, may provide multiple roles within the Margo enabled ecosystem:
 
