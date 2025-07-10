@@ -212,6 +212,8 @@ Components might have different shapes depending on their type and stage:
 
 ### Software Packaging Stage
 
+![image](https://github.com/user-attachments/assets/03b578bf-180e-4f72-a776-bb0fc4baf443)
+
 Software at rest is made available as an Application Package, which is a folder with a Margo-defined structure comprising the software application. This Application Package contains:
 
 - An Application Description that is a Margo-specific way to define the composition of one or more Components. These Components are linked in the Application Description document, are deployable as workloads, and are provided in a Margo-supported way, e.g. as Helm Charts or Compose Archives.
@@ -221,15 +223,35 @@ Application Packages and Components are managed and hosted separately:
 - Application Registries store Application Descriptions and their associated application resources. An Application Registry is implemented as a git repository.
 - Component Registries store Components
 
+The following diagram shows, at hand of an example, the relationship between an Application Package and the Components listed within its Deployment Profiles:
+
+![image](https://github.com/user-attachments/assets/fe7f7876-9f09-4abf-854b-b86cde441a9d)
+
+The following diagram is similar to the previous one, but showing more details on the Component Registry for a Compose Deployment Profile:
+
+![image](https://github.com/user-attachments/assets/d4aa7979-f877-4b85-bf23-8960b3e53673)
+
+The application and contained components are typically configurable with the option of providing default values.
+
 ### Software Deployment Stage
 
 When a device gets the instruction to run an Application (over a desired-state specified with an ApplicationDeployment object), its Workload Fleet Management Agent interacts with the providers. That way all Workloads needed for an Application should get started and the desired state should be reached.
+
+![image](https://github.com/user-attachments/assets/89643a6a-1003-4845-9214-104d8a218b22)
 
 In this stage the providers are responsible for managing the individual Workloads.
 
 On a Helm v3 Deployment Profile, a Workload Fleet Management Agent implementation could utilize the Helm API to start the individual Helm Charts.
 
 On a Compose Deployment Profile, a Workload Fleet Management Agent implementation could utilize the Compose CLI to start the individual Workloads.
+
+The following diagram shows the result of reaching the desired state for an Application with a Helm v3 Deployment Profile (the result of helm install).
+
+![image](https://github.com/user-attachments/assets/9518af5c-ca2d-4614-90ef-aff9179d27ff)
+
+The following diagram shows the result of reaching the desired state for an Application with a Compose Deployment Profile (the result of the compose up CLI call).
+
+![image](https://github.com/user-attachments/assets/d8578c95-2304-4265-aab5-35271502b634)
 
 ## Application Interoperability
 
