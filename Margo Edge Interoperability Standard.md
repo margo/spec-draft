@@ -370,11 +370,274 @@ If either one cannot be implemented it MAY be omitted but Margo RECOMMENDS defin
 
 > Note: A device running the application will only install the application using either Compose files or Helm Charts but not both.
 
+## Application Description Examples
+
+### Example 1: Simple Application Description
+
+A simple hello-world example of an `ApplicationDescription` is shown below:
+
+```yaml
+apiVersion: margo.org/v1-alpha1
+kind: ApplicationDescription
+metadata:
+  id: com-northstartida-hello-world
+  name: Hello World
+  description: A basic hello world application
+  version: "1.0"
+  catalog:
+    application:
+      icon: ./resources/hw-logo.png
+      tagline: Northstar Industrial Application's hello world application.
+      descriptionFile: ./resources/description.md
+      releaseNotes: ./resources/release-notes.md
+      licenseFile: ./resources/license.pdf
+      site: http://www.northstar-ida.com
+      tags: ["monitoring"]
+    author:
+      - name: Roger Wilkershank
+        email: rpwilkershank@northstar-ida.com
+    organization:
+      - name: Northstar Industrial Applications
+        site: http://northstar-ida.com
+deploymentProfiles:
+  - type: helm.v3
+    components:
+      - name: hello-world
+        properties:
+          repository: oci://northstarida.azurecr.io/charts/hello-world
+          revision: 1.0.1
+          wait: true
+parameters:
+  greeting:
+    value: Hello
+    targets:
+      - pointer: global.config.appGreeting
+        components: ["hello-world"]
+  greetingAddressee:
+    value: World
+    targets:
+      - pointer: global.config.appGreetingAddressee
+        components: ["hello-world"]
+configuration:
+  sections:
+    - name: General Settings
+      settings:
+        - parameter: greeting
+          name: Greeting
+          description: The greeting to use.
+          schema: requireText
+        - parameter: greetingAddressee
+          name: Greeting Addressee
+          description: The person, or group, the greeting addresses.
+          schema: requireText
+  schema:
+    - name: requireText
+      dataType: string
+      maxLength: 45
+      allowEmpty: false
+```
+
+### Example 2: Application Description with Deployment Profiles for Helm and Compose
+
+An example of an `ApplicationDescription` defining deployment profiles for both cases, Helm chart as well as Compose, is shown below:
+
+```yaml
+apiVersion: margo.org/v1-alpha1
+kind: ApplicationDescription
+metadata:
+  id: com-northstartida-digitron-orchestrator
+  name: Digitron orchestrator
+  description: The Digitron orchestrator application
+  version: 1.2.1
+  catalog:
+    application:
+      icon: ./resources/ndo-logo.png
+      tagline: Northstar Industrial Application's next-gen, AI driven, Digitron instrument orchestrator.
+      descriptionFile: ./resources/description.md
+      releaseNotes: ./resources/release-notes.md
+      licenseFile: ./resources/license.pdf
+      site: http://www.northstar-ida.com
+      tags: ["optimization", "instrumentation"]
+    author:
+      - name: Roger Wilkershank
+        email: rpwilkershank@northstar-ida.com
+    organization:
+      - name: Northstar Industrial Applications
+        site: http://northstar-ida.com
+deploymentProfiles:
+  - type: helm.v3
+    components:
+      - name: database-services
+        properties:
+          repository: oci://quay.io/charts/realtime-database-services
+          revision: 2.3.7
+          wait: true
+          timeout: 8m30s
+      - name: digitron-orchestrator
+        properties:
+          repository: oci://northstarida.azurecr.io/charts/northstarida-digitron-orchestrator
+          revision: 1.0.9
+          wait: true
+  - type: compose
+    components:
+      - name: digitron-orchestrator-docker
+        properties:
+          packageLocation: https://northsitarida.com/digitron/docker/digitron-orchestrator.tar.gz
+          keyLocation: https://northsitarida.com/digitron/docker/public-key.asc
+parameters:
+  idpName:
+    targets:
+      - pointer: idp.name
+        components: ["digitron-orchestrator"]
+      - pointer: ENV.IDP_NAME
+        components: ["digitron-orchestrator-docker"]
+  idpProvider:
+    targets:
+      - pointer: idp.provider
+        components: ["digitron-orchestrator"]
+      - pointer: ENV.IDP_PROVIDER
+        components: ["digitron-orchestrator-docker"]
+  idpClientId:
+    targets:
+      - pointer: idp.clientId
+        components: ["digitron-orchestrator"]
+      - pointer: ENV.IDP_CLIENT_ID
+        components: ["digitron-orchestrator-docker"]
+  idpUrl:
+    targets:
+      - pointer: idp.providerUrl
+        components: ["digitron-orchestrator"]
+      - pointer: idp.providerMetadata
+        components: ["digitron-orchestrator"]
+      - pointer: ENV.IDP_URL
+        components: ["digitron-orchestrator-docker"]
+  adminName:
+    targets:
+      - pointer: administrator.name
+        components: ["digitron-orchestrator"]
+      - pointer: ENV.ADMIN_NAME
+        components: ["digitron-orchestrator-docker"]
+  adminPrincipalName:
+    targets:
+      - pointer: administrator.userPrincipalName
+        components: ["digitron-orchestrator"]
+      - pointer: ENV.ADMIN_PRINCIPALNAME
+        components: ["digitron-orchestrator-docker"]
+  pollFrequency:
+    value: 30
+    targets:
+      - pointer: settings.pollFrequency
+        components: ["digitron-orchestrator", "database-services"]
+      - pointer: ENV.POLL_FREQUENCY
+        components: ["digitron-orchestrator-docker"]
+  siteId:
+    targets:
+      - pointer: settings.siteId
+        components: ["digitron-orchestrator", "database-services"]
+      - pointer: ENV.SITE_ID
+        components: ["digitron-orchestrator-docker"]
+  cpuLimit:
+    value: 1
+    targets:
+      - pointer: settings.limits.cpu
+        components: ["digitron-orchestrator"]
+  memoryLimit:
+    value: 16384
+    targets:
+      - pointer: settings.limits.memory
+        components: ["digitron-orchestrator"]
+configuration:
+  sections:
+    - name: General
+      settings:
+        - parameter: pollFrequency
+          name: Poll Frequency
+          description: How often the service polls for updated data in seconds
+          schema: pollRange
+        - parameter: siteId
+          name: Site Id
+          description: Special identifier for the site (optional)
+          schema: optionalText
+    - name: Identity Provider
+      settings:
+        - parameter: idpName
+          name: Name
+          description: The name of the Identity Provider to use
+          immutable: true
+          schema: requiredText
+        - parameter: idpProvider
+          name: Provider
+          description: Provider something something
+          immutable: true
+          schema: requiredText
+        - parameter: idpClientId
+          name: Client ID
+          description: The client id
+          immutable: true
+          schema: requiredText
+        - parameter: idpUrl
+          name: Provider URL
+          description: The url of the Identity Provider
+          immutable: true
+          schema: url
+    - name: Administrator
+      settings:
+        - parameter: adminName
+          name: Presentation Name
+          description: The presentation name of the administrator
+          schema: requiredText
+        - parameter: adminPrincipalName
+          name: Principal Name
+          description: The principal name of the administrator
+          schema: email
+    - name: Resource Limits
+      settings:
+        - parameter: cpuLimit
+          name: CPU Limit
+          description: Maximum number of CPU cores to allow the application to consume
+          schema: cpuRange
+        - parameter: memoryLimit
+          name: Memory Limit
+          description: Maximum number of memory to allow the application to consume
+          schema: memoryRange
+  schema:
+    - name: requiredText
+      dataType: string
+      maxLength: 45
+      allowEmpty: false
+    - name: email
+      dataType: string
+      allowEmpty: false
+      regexMatch: .*@[a-z0-9.-]*
+    - name: url
+      dataType: string
+      allowEmpty: false
+      regexMatch: ^(http(s):\/\/.)[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)$
+    - name: pollRange
+      dataType: integer
+      minValue: 30
+      maxValue: 360
+      allowEmpty: false
+    - name: optionalText
+      dataType: string
+      minLength: 5
+      allowEmpty: true
+    - name: cpuRange
+      dataType: double
+      minValue: 0.5
+      maxPrecision: 1
+      allowEmpty: false
+    - name: memoryRange
+      dataType: integer
+      minValue: 16384
+      allowEmpty: false
+```
+
 ## Example Workflow
 
 The following workflow shows how a [workload fleet manager](#workload-fleet-manager) might use the application description information:
 
-1. End user visits an [workload catalog](#workload-marketplace) of the [Workload Fleet Manager](#workload-fleet-manager) Frontend
+1. End User visits an [workload catalog](#workload-marketplace) of the [Workload Fleet Manager](#workload-fleet-manager) Frontend
 2. Frontend requests all [workloads](#workload) from the [Workload Fleet Manager](#workload-fleet-manager)
 3. Either: the [Workload Fleet Manager](#workload-fleet-manager) requests all application descriptions from each known [Application Registry](#application-registry), or maintains a cache of application descriptions
 4. The [Workload Fleet Manager](#workload-fleet-manager) returns the retrieved documents of application descriptions to the frontend
@@ -548,7 +811,6 @@ The onboarding process includes:
 7. Device capabilities information is sent from the device to the workload orchestration web service using the [Device API](#device-api)
 
 <img width="558" height="942" alt="image" src="https://github.com/user-attachments/assets/f0eae282-7f87-46ff-b101-75ff8bfd5407" />
-
 
 ### Configuring the Workload Fleet Management Web Service URL
 
@@ -951,6 +1213,109 @@ The [workload observability](#workload-observability) data is intended to be use
 - The OpenTelemetry community project has reusable components such as telemetry receivers for Kubernetes, Docker and the host system making integration easier
 - OpenTelemetry is vendor agnostic
 
+## Enhanced OpenTelemetry Configuration
+
+### OpenTelemetry Collector Configuration Example
+
+Below is a comprehensive example of an OpenTelemetry collector configuration that aligns with Margo requirements:
+
+```yaml
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+  hostmetrics:
+    collection_interval: 10s
+    scrapers:
+      cpu:
+      disk:
+      filesystem:
+      memory:
+      network:
+      process:
+  k8s_cluster:
+    auth_type: serviceAccount
+    node_conditions_to_report: [Ready, MemoryPressure, DiskPressure, PIDPressure]
+    allocatable_types_to_report: [cpu, memory, ephemeral-storage, storage]
+  kubeletstats:
+    collection_interval: 20s
+    auth_type: serviceAccount
+    endpoint: https://${env:K8S_NODE_NAME}:10250
+    insecure_skip_verify: true
+    metric_groups:
+      - node
+      - pod
+      - container
+      - volume
+  k8s_events:
+    auth_type: serviceAccount
+  docker_stats:
+    endpoint: unix:///var/run/docker.sock
+    collection_interval: 10s
+    timeout: 5s
+
+processors:
+  k8sattributes:
+    auth_type: serviceAccount
+    passthrough: false
+    filter:
+      node_from_env_var: KUBE_NODE_NAME
+    extract:
+      metadata:
+        - k8s.pod.name
+        - k8s.pod.uid
+        - k8s.deployment.name
+        - k8s.namespace.name
+        - k8s.node.name
+        - k8s.pod.start_time
+    pod_association:
+      - sources:
+        - from: resource_attribute
+          name: k8s.pod.ip
+      - sources:
+        - from: resource_attribute
+          name: k8s.pod.uid
+      - sources:
+        - from: connection
+  batch:
+    timeout: 1s
+    send_batch_size: 1024
+    send_batch_max_size: 2048
+  memory_limiter:
+    limit_mib: 512
+
+exporters:
+  logging:
+    loglevel: info
+  # Additional exporters can be configured here
+  # Example: prometheus, jaeger, zipkin, etc.
+  # prometheus:
+  #   endpoint: "0.0.0.0:8889"
+  # jaeger:
+  #   endpoint: jaeger-collector:14250
+  #   tls:
+  #     insecure: true
+
+service:
+  pipelines:
+    metrics:
+      receivers: [otlp, hostmetrics, k8s_cluster, kubeletstats, docker_stats]
+      processors: [k8sattributes, memory_limiter, batch]
+      exporters: [logging]
+    traces:
+      receivers: [otlp]
+      processors: [k8sattributes, memory_limiter, batch]
+      exporters: [logging]
+    logs:
+      receivers: [otlp, k8s_events]
+      processors: [k8sattributes, memory_limiter, batch]
+      exporters: [logging]
+  extensions: [health_check, pprof, zpages]
+```
+
 # API Reference
 
 ## Margo Management API Specification
@@ -981,19 +1346,35 @@ Response:
 }
 ```
 
-Set the Authorization header's value to `Bearer <ACCESS_TOKEN>` when making requests requiring authorization. For example:
-
-```bash
-curl -H "Authorization: Bearer ACCESS_TOKEN" https://wos.example.com/device/2fc3d8e9-8c56-4270-b7d3-8ed30262e5e1
-```
+Set the Authorization header's value to `Bearer <ACCESS_TOKEN>` when making requests requiring authorization.
 
 ### Payload Signing
 
-Steps for signing payloads:
-1. Generate a SHA-256 hash value for the request's body
-2. Create a digital signature using the message source certificate's private key to encrypt the hash value
-3. Base-64 encode the certificate's public key and digital signature in the format of `<public key>;<digital signature>`
-4. Include the base-64 encoded string in the request's `X-Payload-Signature` header
+**Message Envelope Structure:**
+
+```json
+{
+  "payload": "<actual-payload-content>",
+  "signature": "<base64-encoded-signature>",
+  "certificateId": "<device-certificate-guid>"
+}
+```
+
+**Signing Process:**
+
+1. Calculate SHA-256 hash of the payload
+2. Sign the hash using the device's private key
+3. Base-64 encode the signature
+4. Include the certificate identifier (device GUID/serial number)
+5. Send the envelope as the request payload
+
+**Verification Process:**
+
+1. Extract the certificate identifier from the envelope
+2. Retrieve the corresponding public key
+3. Verify the signature using the public key
+4. Compare the hash of the received payload with the decrypted signature
+5. Process the payload if verification succeeds
 
 ### Verifying Signed Payloads
 
@@ -1003,13 +1384,11 @@ Steps for verifying signed payloads:
 3. Generate a SHA-256 hash value for the request's body
 4. Ensure the generated hash value matches the hash value from the message
 
-## Workload API
-
 ### Desired State API
 
-The desired state is expressed as a [Kubernetes custom resource definition](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/) and made available to the device's management client as a YAML document using the OpenGitOps pattern.
+The desired state is expressed as a Kubernetes custom resource definition and made available to the device's management client as a YAML document using the OpenGitOps pattern.
 
-#### ApplicationDeployment Definition
+**Application Deployment Definition:**
 
 ```yaml
 apiVersion: application.margo.org/v1alpha1
@@ -1034,8 +1413,6 @@ spec:
           components: []
 ```
 
-#### ApplicationDeployment Attributes
-
 | Attribute | Type | Required? | Description |
 |-----------|------|-----------|-------------|
 | apiVersion | string | Y | Identifier of the version of the API the object definition follows |
@@ -1043,238 +1420,179 @@ spec:
 | metadata | Metadata | Y | Metadata element specifying characteristics about the application deployment |
 | spec | Spec | Y | Spec element that defines deployment profile and parameters associated with the application deployment |
 
-#### Metadata Attributes
+**Metadata Attributes:**
 
 | Attribute | Type | Required? | Description |
 |-----------|------|-----------|-------------|
 | annotations | Annotations | Y | Defines the application ID and unique identifier associated to the deployment specification |
-| name | string | Y | When deploying to Kubernetes, the manifest's name. The name is chosen by the workload orchestration vendor and is not displayed anywhere |
-| namespace | string | Y | When deploying to Kubernetes, the namespace the manifest is added under. The namespace is chosen by the workload orchestration solution vendor |
+| name | string | Y | When deploying to Kubernetes, the manifest's name |
+| namespace | string | Y | When deploying to Kubernetes, the namespace the manifest is added under |
 
-#### Annotations Attributes
+**Annotations Attributes:**
 
 | Attribute | Type | Required? | Description |
 |-----------|------|-----------|-------------|
-| applicationId | string | Y | An identifier for the application. The id is used to help create unique identifiers where required, such as namespaces. The id must be lower case letters and numbers and MAY contain dashes. Uppercase letters, underscores and periods MUST NOT be used. The id MUST NOT be more than 200 characters. The applicationId MUST match the associated application package Metadata "id" attribute |
+| applicationId | string | Y | An identifier for the application. Must be lower case letters and numbers and MAY contain dashes. MUST NOT be more than 200 characters |
 | id | string | Y | The unique identifier UUID of the deployment specification. Needs to be assigned by the Workload Orchestration Software |
 
-#### Spec Attributes
+## Application Package API - Application Description
+
+The application description has the purpose of presenting the application, e.g., on an [application catalog](#application-catalog) or [marketplace](#workload-marketplace) from where an end user selects an application to be installed.
+
+**Top-level Attributes:**
 
 | Attribute | Type | Required? | Description |
 |-----------|------|-----------|-------------|
-| deploymentProfile | DeploymentProfile | Y | Section that defines deployment details including type and components |
-| parameters | map[string][Parameter] | Y | Describes the configured parameters applied via the end-user |
+| apiVersion | string | Y | Identifier of the version of the API the object definition follows |
+| kind | string | Y | Specifies the object type; must be 'application' |
+| metadata | Metadata | Y | Metadata element specifying characteristics about the application deployment |
+| deploymentProfiles | []DeploymentProfile | Y | Deployment profiles for the application |
+| parameters | map[string]Parameter | N | Configurable parameters for the application |
+| configuration | Configuration | N | Configuration layout and validation rules |
 
-#### DeploymentProfile Attributes
-
-| Attribute | Type | Required? | Description |
-|-----------|------|-----------|-------------|
-| type | string | Y | The type of deployment profile (e.g., helm.v3, compose) |
-| components | Component | Y | Components of the application |
-
-#### Component Attributes
+**Metadata Attributes:**
 
 | Attribute | Type | Required? | Description |
 |-----------|------|-----------|-------------|
-| name | string | Y | The name of the component |
-| properties | map[string][string] | Y | Properties associated with the component |
+| id | string | Y | An identifier for the application. Must be lower case letters and numbers and MAY contain dashes. MUST NOT be more than 200 characters |
+| name | string | Y | The application's official name for display purposes |
+| description | string | N | Description of the application |
+| version | string | Y | The application's version |
+| catalog | Catalog | Y | Catalog element specifying the application catalog details |
 
-#### Parameter Attributes
+**DeploymentProfile Attributes:**
+
+| Attribute | Type | Required? | Description |
+|-----------|------|-----------|-------------|
+| type | string | Y | Defines the type of deployment configuration. Allowed values are helm.v3 and compose |
+| components | []Component | Y | Component element indicating the components to deploy when installing the application |
+
+**Component Attributes:**
+
+| Attribute | Type | Required? | Description |
+|-----------|------|-----------|-------------|
+| name | string | Y | A unique name used to identify the component package. Must be lower case letters and numbers and MAY contain dashes |
+| properties | ComponentProperties | Y | A dictionary element specifying the component package's deployment details |
+
+**ComponentProperties for helm.v3:**
+
+| Attribute | Type | Required? | Description |
+|-----------|------|-----------|-------------|
+| repository | string | Y | The URL indicating the helm chart's location |
+| revision | string | Y | The helm chart's full version |
+| wait | bool | N | If True, indicates the device MUST wait until the helm chart has finished installing before installing the next helm chart |
+| timeout | string | N | The time to wait for the component's installation to complete. Format is "##m##s" |
+
+**ComponentProperties for compose:**
+
+| Attribute | Type | Required? | Description |
+|-----------|------|-----------|-------------|
+| packageLocation | string | Y | The URL indicating the Compose package's location |
+| keyLocation | string | N | The public key used to validate the digitally signed package. When signing the package PGP MUST be used |
+| wait | bool | N | If True, indicates the device MUST wait until the Compose file has finished starting up |
+| timeout | string | N | The time to wait for the component's installation to complete |
+
+**Parameter Attributes:**
 
 | Attribute | Type | Required? | Description |
 |-----------|------|-----------|-------------|
 | name | string | Y | Name of the parameter |
-| value | string | Y | The value of the parameter |
-| targets | Target | Y | The targets associated with the parameter |
+| value | <see description> | N | The parameter's default value. Accepted data types are string, integer, double, boolean, array[string], array[integer], array[double], array[boolean] |
+| targets | []Target | Y | Used to indicate which component the value should be applied to when installing, or updating, the application |
 
-#### Target Attributes
+**Target Attributes:**
 
 | Attribute | Type | Required? | Description |
 |-----------|------|-----------|-------------|
-| pointer | string | Y | The pointer indicating the location of the target |
-| components | string | Y | The components associated with the target |
+| pointer | string | Y | The name of the parameter in the deployment configuration. For Helm deployments, this is the dot notation for the matching element in the values.yaml file. For compose deployments, this is the name of the environment variable to set |
+| components | []string | Y | Indicates which deployment profile component the parameter target applies to |
 
-#### Example: Cluster Enabled Application Deployment Specification
+**Configuration Attributes:**
 
-```yaml
-apiVersion: application.margo.org/v1alpha1
-kind: ApplicationDeployment
-metadata:
-  annotations:
-    applicationId: com-northstartida-digitron-orchestrator
-    id: a3e2f5dc-912e-494f-8395-52cf3769bc06
-  name: com-northstartida-digitron-orchestrator-deployment
-  namespace: margo-poc
-spec:
-  deploymentProfile:
-    type: helm.v3
-    components:
-      - name: database-services
-        properties:
-          repository: oci://quay.io/charts/realtime-database-services
-          revision: 2.3.7
-          timeout: 8m30s
-          wait: "true"
-      - name: digitron-orchestrator
-        properties:
-          repository: oci://northstarida.azurecr.io/charts/northstarida-digitron-orchestrator
-          revision: 1.0.9
-          wait: "true"
-  parameters:
-    adminName:
-      value: Some One
-      targets:
-        - pointer: administrator.name
-          components:
-            - digitron-orchestrator
-    adminPrincipalName:
-      value: someone@somewhere.com
-      targets:
-        - pointer: administrator.userPrincipalName
-          components:
-            - digitron-orchestrator
-    cpuLimit:
-      value: "4"
-      targets:
-        - pointer: settings.limits.cpu
-          components:
-            - digitron-orchestrator
-    idpClientId:
-      value: 123-ABC
-      targets:
-        - pointer: idp.clientId
-          components:
-            - digitron-orchestrator
-    idpName:
-      value: Azure AD
-      targets:
-        - pointer: idp.name
-          components:
-            - digitron-orchestrator
-    idpProvider:
-      value: aad
-      targets:
-        - pointer: idp.provider
-          components:
-            - digitron-orchestrator
-    idpUrl:
-      value: https://123-abc.com
-      targets:
-        - pointer: idp.providerUrl
-          components:
-            - digitron-orchestrator
-        - pointer: idp.providerMetadata
-          components:
-            - digitron-orchestrator
-    memoryLimit:
-      value: "16384"
-      targets:
-        - pointer: settings.limits.memory
-          components:
-            - digitron-orchestrator
-    pollFrequency:
-      value: "120"
-      targets:
-        - pointer: settings.pollFrequency
-          components:
-            - digitron-orchestrator
-            - database-services
-    siteId:
-      value: SID-123-ABC
-      targets:
-        - pointer: settings.siteId
-          components:
-            - digitron-orchestrator
-            - database-services
-```
+| Attribute | Type | Required? | Description |
+|-----------|------|-----------|-------------|
+| sections | []Section | Y | Sections are used to group related parameters together |
+| schema | []Schema | Y | Schema definitions for parameter validation |
 
-#### Example: Standalone Device Application Deployment Specification
+**Section Attributes:**
 
-```yaml
-apiVersion: application.margo.org/v1alpha1
-kind: ApplicationDeployment
-metadata:
-  annotations:
-    applicationId: com-northstartida-digitron-orchestrator
-    id: ad9b614e-8912-45f4-a523-372358765def
-  name: com-northstartida-digitron-orchestrator-deployment
-  namespace: margo-poc
-spec:
-  deploymentProfile:
-    type: compose
-    components:
-      - name: digitron-orchestrator-docker
-        properties:
-          keyLocation: https://northsitarida.com/digitron/docker/public-key.asc
-          packageLocation: https://northsitarida.com/digitron/docker/digitron-orchestrator.tar.gz
-  parameters:
-    adminName:
-      value: Some One
-      targets:
-        - pointer: ENV.ADMIN_NAME
-          components:
-            - digitron-orchestrator-docker
-    adminPrincipalName:
-      value: someone@somewhere.com
-      targets:
-        - pointer: ENV.ADMIN_PRINCIPALNAME
-          components:
-            - digitron-orchestrator-docker
-    idpClientId:
-      value: 123-ABC
-      targets:
-        - pointer: ENV.IDP_CLIENT_ID
-          components:
-            - digitron-orchestrator-docker
-    idpName:
-      value: Azure AD
-      targets:
-        - pointer: ENV.IDP_NAME
-          components:
-            - digitron-orchestrator-docker
-    idpProvider:
-      value: aad
-      targets:
-        - pointer: ENV.IDP_PROVIDER
-          components:
-            - digitron-orchestrator-docker
-    idpUrl:
-      value: https://123-abc.com
-      targets:
-        - pointer: ENV.IDP_URL
-          components:
-            - digitron-orchestrator-docker
-    pollFrequency:
-      value: "120"
-      targets:
-        - pointer: ENV.POLL_FREQUENCY
-          components:
-            - digitron-orchestrator-docker
-    siteId:
-      value: SID-123-ABC
-      targets:
-        - pointer: ENV.SITE_ID
-          components:
-            - digitron-orchestrator-docker
-```
+| Attribute | Type | Required? | Description |
+|-----------|------|-----------|-------------|
+| name | string | Y | The name of the section |
+| settings | []Setting | Y | Settings are used to provide instructions for displaying parameters to the user |
 
-### Device API
+**Setting Attributes:**
 
-#### Device Capabilities
+| Attribute | Type | Required? | Description |
+|-----------|------|-----------|-------------|
+| parameter | string | Y | The name of the parameter this setting applies to |
+| name | string | Y | Display name for the parameter |
+| description | string | N | Description of the parameter |
+| schema | string | Y | Reference to the schema definition for validation |
+| immutable | bool | N | If true, indicates the parameter cannot be changed after initial deployment |
+
+**Schema Attributes:**
+
+| Attribute | Type | Required? | Description |
+|-----------|------|-----------|-------------|
+| name | string | Y | The name of the schema rule |
+| dataType | string | Y | The data type. Valid values: string, integer, double, boolean, array |
+| allowEmpty | boolean | N | If true, indicates a value must be provided. Default is false |
+
+**TextValidationSchema Attributes (extends Schema):**
+
+| Attribute | Type | Required? | Description |
+|-----------|------|-----------|-------------|
+| minLength | integer | N | Minimum number of characters required |
+| maxLength | integer | N | Maximum number of characters allowed |
+| regexMatch | string | N | Regular expression pattern for validation |
+
+**NumericIntegerValidationSchema Attributes (extends Schema):**
+
+| Attribute | Type | Required? | Description |
+|-----------|------|-----------|-------------|
+| minValue | integer | N | Minimum allowed integer value |
+| maxValue | integer | N | Maximum allowed integer value |
+
+**NumericDoubleValidationSchema Attributes (extends Schema):**
+
+| Attribute | Type | Required? | Description |
+|-----------|------|-----------|-------------|
+| minValue | float | N | Minimum allowed value |
+| maxValue | float | N | Maximum allowed value |
+| minPrecision | integer | N | Minimum level of precision required |
+| maxPrecision | integer | N | Maximum level of precision allowed |
+
+**BooleanValidationSchema Attributes (extends Schema):**
+
+| Attribute | Type | Required? | Description |
+|-----------|------|-----------|-------------|
+| allowEmpty | boolean | N | If true, indicates a value must be provided |
+
+**SelectValidationSchema Attributes (extends Schema):**
+
+| Attribute | Type | Required? | Description |
+|-----------|------|-----------|-------------|
+| multiselect | boolean | N | If true, indicates multiple values can be selected |
+| options | []string | Y | List of acceptable options the user can select from |
+
+## Device API
+
+### Device Capabilities
 
 Devices MUST provide the workload orchestration service with its capabilities and characteristics using the Device API's device capabilities endpoint.
 
-##### Route and HTTP Methods
+**Route and HTTP Methods:**
 - `POST /device/{deviceId}/capabilities`
 - `PUT /device/{deviceId}/capabilities`
 
-##### Route Parameters
+**Route Parameters:**
 
 | Parameter | Type | Required? | Description |
 |-----------|------|-----------|-------------|
 | {deviceId} | string | Y | The device's Id registered with the workload orchestration web service during onboarding |
 
-##### Request Body Fields
+**Request Body Fields:**
 
 | Field | Type | Required? | Description |
 |-------|------|-----------|-------------|
@@ -1282,7 +1600,7 @@ Devices MUST provide the workload orchestration service with its capabilities an
 | kind | string | Y | Must be DeviceCapabilities |
 | properties | Properties | Y | Element that defines characteristics about the device |
 
-##### Properties Fields
+**Properties Fields:**
 
 | Field | Type | Required? | Description |
 |-------|------|-----------|-------------|
@@ -1290,46 +1608,46 @@ Devices MUST provide the workload orchestration service with its capabilities an
 | vendor | string | Y | Defines the device vendor |
 | modelNumber | string | Y | Defines the model number of the device |
 | serialNumber | string | Y | Defines the serial number of the device |
-| roles | []string | Y | Element that defines the device role it can provide to the Margo environment. MUST be one of: Standalone Cluster, Cluster Leader, or Standalone Device |
-| resources | []Resource | Y | Element that defines the device's resources available to applications deployed on the device |
-| peripherals | []Peripheral | Y | Element that defines the device's peripherals available to applications deployed on the device |
-| interfaces | []Interface | Y | Element that defines the device's interfaces available to applications deployed on the device |
+| roles | []string | Y | Element that defines the device role it can provide. MUST be one of: Standalone Cluster, Cluster Leader, or Standalone Device |
+| resources | Resources | Y | Element that defines the device's resources available to applications |
+| peripherals | []Peripheral | Y | Element that defines the device's peripherals available to applications |
+| interfaces | []Interface | Y | Element that defines the device's interfaces available to applications |
 
-##### Resources Fields
-
-| Field | Type | Required? | Description |
-|-------|------|-----------|-------------|
-| cpus | []CPU | Y | Element that defines the device's CPUs available to applications deployed on the device |
-| memory | integer | Y | Defines the memory capacity available for applications on the device. This MUST be defined in GBs |
-| storage | integer | Y | Defines the storage capacity available for applications to utilize. This MUST be defined in GBs |
-
-##### CPU Fields
+**Resources Fields:**
 
 | Field | Type | Required? | Description |
 |-------|------|-----------|-------------|
-| cpuArchitecture | string | Y | Defines the CPU's architecture. i.e. ARM/Intel x86 |
-| cores | integer | Y | Defines the cores available within the host's CPU |
-| frequency | integer | Y | Defines the frequency of the CPU. Must be defined in GHz |
+| memory | string | Y | Total available memory (e.g., "64.0 GB") |
+| storage | string | Y | Total available storage (e.g., "2000 GB") |
+| cpus | []CPU | Y | Array of CPU specifications |
 
-##### Peripheral Fields
+**CPU Fields:**
+
+| Field | Type | Required? | Description |
+|-------|------|-----------|-------------|
+| architecture | string | Y | CPU architecture (e.g., "Intel x64", "ARM64") |
+| cores | integer | Y | Number of CPU cores |
+| frequency | string | Y | CPU frequency (e.g., "6.2 GHz") |
+
+**Peripheral Fields:**
 
 | Field | Type | Required? | Description |
 |-------|------|-----------|-------------|
 | name | string | Y | Name of the peripheral |
-| type | string | Y | Type of the peripheral. i.e. GPU |
+| type | string | Y | Type of peripheral (e.g., "GPU", "USB", "Serial") |
 | modelNumber | string | Y | Model number of the peripheral |
-| properties | map[string]string | Y | Properties of the peripheral |
+| properties | map[string]string | Y | Additional properties specific to the peripheral |
 
-##### Interface Fields
+**Interface Fields:**
 
 | Field | Type | Required? | Description |
 |-------|------|-----------|-------------|
 | name | string | Y | Name of the interface |
-| type | string | Y | Type of the interface. i.e. Ethernet NIC |
+| type | string | Y | Type of interface (e.g., "Ethernet", "WiFi", "Cellular") |
 | modelNumber | string | Y | Model number of the interface |
-| properties | map[string]string | Y | Properties of the interface to inform the WOS with additional information |
+| properties | map[string]string | Y | Additional properties specific to the interface |
 
-##### Example Request
+**Example Request:**
 
 ```json
 {
@@ -1370,75 +1688,59 @@ Devices MUST provide the workload orchestration service with its capabilities an
         "properties": {
           "maxSpeed": "2.5 Gbps"
         }
-      },
-      {
-        "name": "WiFi 6E Intel AX411NGW M.2 Cnvio2",
-        "type": "Wi-Fi",
-        "modelNumber": "AX411NGW",
-        "properties": {
-          "bands": ["2.4 GHz", "5 GHz", "6GHz"],
-          "maxSpeed": "2.4 Gbps"
-        }
       }
     ]
   }
 }
 ```
 
-##### Response Codes
-
-| Code | Description |
-|------|-------------|
-| 201 | The device capabilities document was added, or updated, successfully |
-| 4XX-5XX | The request was not completed successfully |
-
-#### Deployment Status
+### Deployment Status
 
 While applying a new desired state the device's management client MUST provide the workload orchestration web service with an indication of the current status using the Device API's device status endpoint.
 
-##### Route and HTTP Methods
+**Route and HTTP Methods:**
 - `POST /device/{deviceId}/deployment/{deploymentId}/status`
 
-##### Route Parameters
+**Route Parameters:**
 
 | Parameter | Type | Required? | Description |
 |-----------|------|-----------|-------------|
 | {deviceId} | string | Y | The device's Id registered with the workload orchestration solution during onboarding |
 | {deploymentId} | string | Y | The deployment Id the status is being reported for |
 
-##### Request Body Fields
+**Request Body Fields:**
 
 | Field | Type | Required? | Description |
 |-------|------|-----------|-------------|
 | apiVersion | string | Y | Identifier of the version of the API the object definition follows |
 | kind | string | Y | Must be DeploymentStatus |
 | deploymentId | string | Y | The unique identifier UUID of the deployment specification |
-| status | []status | Y | Element that defines overall deployment status |
-| components | []components | Y | Element that defines the individual component's deployment status |
+| status | Status | Y | Element that defines overall deployment status |
+| components | []Component | Y | Element that defines the individual component's deployment status |
 
-##### Status Fields
+**Status Fields:**
 
 | Field | Type | Required? | Description |
 |-------|------|-----------|-------------|
-| state | string | Y | Current state of the overall deployment. MUST be one of: Pending, Installing, Installed, Failed. The overall deployment status MUST inherit the current component's status until it has gone through installing each component |
+| state | string | Y | Current state of the overall deployment. MUST be one of: Pending, Installing, Installed, Failed |
 | error | Error | N | Element that defines the overall installation error if one occurred |
 
-##### Component Fields
-
-| Attribute | Type | Required? | Description |
-|-----------|------|-----------|-------------|
-| name | string | Y | Name of the deployment component, inherited via the deployment specification |
-| state | string | Y | The component's current deployment state. MUST be one of: Pending, Installing, Installed, Failed |
-| error | Error | N | Element that defines the component's installation error if one occurred |
-
-##### Error Fields
+**Component Fields:**
 
 | Field | Type | Required? | Description |
 |-------|------|-----------|-------------|
-| code | string | Y | Associated error code following a component failure during installation |
-| message | string | Y | Associated error message that provides further details to the WOS about the error that was encountered |
+| name | string | Y | Name of the component |
+| state | string | Y | Current state of the component. MUST be one of: Pending, Installing, Installed, Failed |
+| error | Error | N | Element that defines the component installation error if one occurred |
 
-##### Example Request
+**Error Fields:**
+
+| Field | Type | Required? | Description |
+|-------|------|-----------|-------------|
+| code | string | N | Error code identifying the type of error |
+| message | string | N | Human-readable error message |
+
+**Example Request:**
 
 ```json
 {
@@ -1457,14 +1759,6 @@ While applying a new desired state the device's management client MUST provide t
       "name": "digitron-orchestrator",
       "state": "pending",
       "error": {
-        "code":"",
-        "message":""
-      }
-    },
-    {
-      "name": "database-services",
-      "state": "pending",
-      "error": {
         "code": "",
         "message": ""
       }
@@ -1473,304 +1767,662 @@ While applying a new desired state the device's management client MUST provide t
 }
 ```
 
-##### Response Codes
+**Deployment Status State Definitions:**
 
-| Code | Description |
-|------|-------------|
-| 201 | The deployment status was added, or updated, successfully |
-| 4XX-5XX | The request was not completed successfully |
+- **Pending**: Device management client has received the updated desired state but has not started applying it. When reporting this state, indicate the reason such as:
+  - Waiting on Policy agent
+  - Waiting on other applications in the 'Order of operations' to be completed
+  - Resource constraints preventing deployment
 
-### Application Package API
+- **Installing**: Device management client has started the process of applying the desired state
 
-#### Application Description
+- **Installed**: The desired state has been applied completely and the workload is running successfully
 
-The application description has the purpose of presenting the application, e.g., on an [application catalog](#application-catalog) or [marketplace](#workload-marketplace) from where an end user selects an application to be installed. The end user defines an ApplicationDeployment by specifying configuration parameters for an ApplicationDescription. An ApplicationDeployment defines the [desired state](#desired-state-api) for an application.
+- **Failed**: At any point the desired state failed to be applied. When reporting a Failure state, the error message and error code MUST be reported
 
-##### Top-level Attributes
+**Common Error Codes:**
 
-| Attribute | Type | Required? | Description |
-|-----------|------|-----------|-------------|
+- `AUTHENTICATION_FAILED`: OAuth or certificate authentication failed
+- `DEPLOYMENT_FAILED`: Application deployment failed
+- `RESOURCE_INSUFFICIENT`: Insufficient resources on device
+- `NETWORK_ERROR`: Network connectivity issues
+- `VALIDATION_ERROR`: Invalid configuration or parameters
+- `TIMEOUT_ERROR`: Operation timed out
+- `IMAGE_PULL_FAILED`: Failed to pull container image
+- `CHART_NOT_FOUND`: Helm chart not found
+- `COMPOSE_FILE_INVALID`: Invalid Compose file format
+
+## Onboarding API
+
+### Device Onboarding
+
+**Route and HTTP Methods:**
+- `POST /onboarding/device`
+
+**Request Body Fields:**
+
+| Field | Type | Required? | Description |
+|-------|------|-----------|-------------|
 | apiVersion | string | Y | Identifier of the version of the API the object definition follows |
-| kind | string | Y | Specifies the object type; must be 'application' |
-| metadata | Metadata | Y | Metadata element specifying characteristics about the application deployment |
-| deploymentProfiles | []DeploymentProfile | Y | Deployment profiles for the application |
-| parameters | map[string]Parameter | N | Configurable parameters for the application |
-| configuration | Configuration | N | Configuration layout and validation rules |
+| kind | string | Y | Must be DeviceOnboarding |
+| deviceId | string | Y | Unique device identifier |
+| certificate | string | Y | Base-64 encoded device certificate |
+| capabilities | DeviceCapabilities | Y | Device capabilities as defined in Device Capabilities API |
 
-##### Metadata Attributes
+**Response Body Fields:**
 
-| Attribute | Type | Required? | Description |
-|-----------|------|-----------|-------------|
-| id | string | Y | An identifier for the application. The id is used to help create unique identifiers where required, such as namespaces. The id must be lower case letters and numbers and MAY contain dashes. Uppercase letters, underscores and periods MUST NOT be used. The id MUST NOT be more than 200 characters |
-| name | string | Y | The application's official name. This name is for display purposes only and can contain whitespace and special characters |
-| description | string | N | Description of the application |
-| version | string | Y | The application's version |
-| catalog | Catalog | Y | Catalog element specifying the application catalog details used to display the application in an application catalog or marketplace |
+| Field | Type | Required? | Description |
+|-------|------|-----------|-------------|
+| clientId | string | Y | OAuth 2.0 client ID for authentication |
+| clientSecret | string | Y | OAuth 2.0 client secret for authentication |
+| tokenEndpoint | string | Y | URL for OAuth 2.0 token endpoint |
+| gitRepositoryUrl | string | Y | URL for the Git repository containing desired state |
+| gitAccessToken | string | Y | Access token for Git repository authentication |
 
-##### Catalog Attributes
+**Example Request:**
 
-| Attribute | Type | Required? | Description |
-|-----------|------|-----------|-------------|
-| application | ApplicationMetadata | N | Application element specifying the application specific metadata |
-| author | []AuthorMetadata | N | Author metadata |
-| organization | []OrganizationMetadata | N | Organization metadata |
-
-##### ApplicationMetadata Attributes
-
-| Attribute | Type | Required? | Description |
-|-----------|------|-----------|-------------|
-| descriptionFile | string | N | Link to the file containing the application's full description. The file should be a markdown file |
-| icon | string | N | Link to the icon file (e.g., in PNG format) |
-| licenseFile | string | N | Link to the file that details the application's license. The file should either be a plain text, markdown or PDF file |
-| releaseNotes | string | N | Statement about the changes for this application's release. The file should either be a markdown or PDF file |
-| site | string | N | Link to the application's website |
-| tagline | string | N | The application's slogan |
-| tags | []string | N | An array of strings that can be used to provide additional context for the application in a user interface to assist with tasks such as categorizing, searching, etc. |
-
-##### Author Attributes
-
-| Attribute | Type | Required? | Description |
-|-----------|------|-----------|-------------|
-| name | string | N | The name of the application's creator |
-| email | string | N | Email address of the application's creator |
-
-##### Organization Attributes
-
-| Attribute | Type | Required? | Description |
-|-----------|------|-----------|-------------|
-| name | string | Y | Organization responsible for the application's development and distribution |
-| site | string | N | Link to the organization's website |
-
-##### DeploymentProfile Attributes
-
-| Attribute | Type | Required? | Description |
-|-----------|------|-----------|-------------|
-| type | string | Y | Defines the type of deployment configuration. Allowed values are helm.v3 and compose |
-| components | []Component | Y | Component element indicating the components to deploy when installing the application |
-
-##### Component Attributes
-
-| Attribute | Type | Required? | Description |
-|-----------|------|-----------|-------------|
-| name | string | Y | A unique name used to identify the component package. Must be lower case letters and numbers and MAY contain dashes |
-| properties | ComponentProperties | Y | A dictionary element specifying the component package's deployment details |
-
-##### ComponentProperties for helm.v3
-
-| Attribute | Type | Required? | Description |
-|-----------|------|-----------|-------------|
-| repository | string | Y | The URL indicating the helm chart's location |
-| revision | string | Y | The helm chart's full version |
-| wait | bool | N | If True, indicates the device MUST wait until the helm chart has finished installing before installing the next helm chart |
-| timeout | string | N | The time to wait for the component's installation to complete. Format is "##m##s" |
-
-##### ComponentProperties for compose
-
-| Attribute | Type | Required? | Description |
-|-----------|------|-----------|-------------|
-| packageLocation | string | Y | The URL indicating the Compose package's location |
-| keyLocation | string | N | The public key used to validate the digitally signed package. When signing the package PGP MUST be used |
-| wait | bool | N | If True, indicates the device MUST wait until the Compose file has finished starting up |
-| timeout | string | N | The time to wait for the component's installation to complete |
-
-##### Defining Configurable Application Parameters
-
-To allow customizable configuration values when installing an application, the application description defines the parameters and configuration sections giving the application vendor control over what can be configured when installing, or updating, an application.
-
-##### Parameter Attributes
-
-| Attribute | Type | Required? | Description |
-|-----------|------|-----------|-------------|
-| name | string | Y | Name of the parameter |
-| value | <see description> | N | The parameter's default value. Accepted data types are string, integer, double, boolean, array[string], array[integer], array[double], array[boolean] |
-| targets | []Target | Y | Used to indicate which component the value should be applied to when installing, or updating, the application |
-
-##### Target Attributes
-
-| Attribute | Type | Required? | Description |
-|-----------|------|-----------|-------------|
-| pointer | string | Y | The name of the parameter in the deployment configuration. For Helm deployments, this is the dot notation for the matching element in the values.yaml file. For compose deployments, this is the name of the environment variable to set |
-| components | []string | Y | Indicates which deployment profile component the parameter target applies to |
-
-##### Configuration Attributes
-
-| Attribute | Type | Required? | Description |
-|-----------|------|-----------|-------------|
-| sections | []Section | Y | Sections are used to group related parameters together |
-
-##### Section Attributes
-
-| Attribute | Type | Required? | Description |
-|-----------|------|-----------|-------------|
-| name | string | Y | The name of the section |
-| settings | []Setting | Y | Settings are used to provide instructions to the workload orchestration software vendor for displaying parameters to the user |
-
-##### Setting Attributes
-
-| Attribute | Type | Required? | Description |
-|-----------|------|-----------|-------------|
-| parameter | string | Y | The name of the parameter |
-| name | string | Y | Display name for the parameter |
-| description | string | N | Description of the parameter |
-| schema | string | Y | References a schema rule for validation |
-
-##### Schema Attributes
-
-| Attribute | Type | Required? | Description |
-|-----------|------|-----------|-------------|
-| name | string | Y | The name of the schema rule |
-| dataType | string | Y | The data type (string, integer, double, boolean) |
-| allowEmpty | boolean | N | If true, indicates a value must be provided. Default is false if not provided |
-
-##### TextValidationSchema Attributes (Subclass of Schema)
-
-| Attribute | Type | Required? | Description |
-|-----------|------|-----------|-------------|
-| minLength | integer | N | Minimum number of characters the value must have |
-| maxLength | integer | N | Maximum number of characters the value must have |
-| regexMatch | string | N | Regular expression to use to validate the value |
-
-##### BooleanValidationSchema Attributes (Subclass of Schema)
-
-| Attribute | Type | Required? | Description |
-|-----------|------|-----------|-------------|
-| allowEmpty | boolean | N | If true, indicates a value must be provided. Default is false if not provided |
-
-##### NumericIntegerValidationSchema Attributes (Subclass of Schema)
-
-| Attribute | Type | Required? | Description |
-|-----------|------|-----------|-------------|
-| minValue | integer | N | Minimum allowed integer value |
-| maxValue | integer | N | Maximum allowed integer value |
-
-##### NumericDoubleValidationSchema Attributes (Subclass of Schema)
-
-| Attribute | Type | Required? | Description |
-|-----------|------|-----------|-------------|
-| minValue | float | N | Minimum value to be considered valid |
-| maxValue | float | N | Maximum value to be considered valid |
-| minPrecision | integer | N | Minimum level of precision the value must have |
-| maxPrecision | integer | N | Maximum level of precision the value must have |
-
-##### SelectValidationSchema Attributes (Subclass of Schema)
-
-| Attribute | Type | Required? | Description |
-|-----------|------|-----------|-------------|
-| multiselect | boolean | N | If true, indicates multiple values can be selected. Default is false if not provided |
-| options | []string | Y | List of acceptable options the user can select from |
-
-##### Application Description Examples
-
-###### Example 1: Simple Application Description
-
-```yaml
-apiVersion: margo.org/v1-alpha1
-kind: ApplicationDescription
-metadata:
-  id: com-northstartida-hello-world
-  name: Hello World
-  description: A basic hello world application
-  version: "1.0"
-  catalog:
-    application:
-      icon: ./resources/hw-logo.png
-      tagline: Northstar Industrial Application's hello world application.
-      descriptionFile: ./resources/description.md
-      releaseNotes: ./resources/release-notes.md
-      licenseFile: ./resources/license.pdf
-      site: http://www.northstar-ida.com
-      tags: ["monitoring"]
-    author:
-      - name: Roger Wilkershank
-        email: rpwilkershank@northstar-ida.com
-    organization:
-      - name: Northstar Industrial Applications
-        site: http://northstar-ida.com
-deploymentProfiles:
-  - type: helm.v3
-    components:
-      - name: hello-world
-        properties:
-          repository: oci://northstarida.azurecr.io/charts/hello-world
-          revision: 1.0.1
-          wait: true
-parameters:
-  greeting:
-    value: Hello
-    targets:
-      - pointer: global.config.appGreeting
-        components: ["hello-world"]
-  greetingAddressee:
-    value: World
-    targets:
-      - pointer: global.config.appGreetingAddressee
-        components: ["hello-world"]
-configuration:
-  sections:
-    - name: General Settings
-      settings:
-        - parameter: greeting
-          name: Greeting
-          description: The greeting to use.
-          schema: requireText
-        - parameter: greetingAddressee
-          name: Greeting Addressee
-          description: The person, or group, the greeting addresses.
-          schema: requireText
-schema:
-  - name: requireText
-    dataType: string
-    maxLength: 45
-    allowEmpty: false
+```json
+{
+  "apiVersion": "onboarding.margo/v1",
+  "kind": "DeviceOnboarding",
+  "deviceId": "northstarida.xtapro.k8s.edge",
+  "certificate": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0t...",
+  "capabilities": {
+    "apiVersion": "device.margo/v1",
+    "kind": "DeviceCapability",
+    "properties": {
+      "id": "northstarida.xtapro.k8s.edge",
+      "vendor": "Northstar Industrial Applications",
+      "modelNumber": "332ANZE1-N1",
+      "serialNumber": "PF45343-AA",
+      "roles": ["standalone cluster"]
+    }
+  }
+}
 ```
 
-###### Example 2: Application Description with Deployment Profiles for Helm and Compose
+**Example Response:**
+
+```json
+{
+  "clientId": "device-client-12345",
+  "clientSecret": "super-secret-client-secret",
+  "tokenEndpoint": "https://fleet-manager.example.com/oauth/token",
+  "gitRepositoryUrl": "https://git.example.com/device-configs/northstarida.xtapro.k8s.edge",
+  "gitAccessToken": "ghp_1234567890abcdef"
+}
+```
+
+### Certificate API (Root CA Download)
+
+In order to facilitate secure communication between the device's management client and workload orchestration web service the workload orchestration web service's root CA certificate must be downloaded using the Onboarding API's certificate endpoint.
+
+**Route and HTTP Methods:**
+- `GET /onboarding/certificate`
+
+**Response Body:**
+
+```json
+{
+  "certificate": "<base-64 encoded certificate text>"
+}
+```
+
+## GitOps Repository Structure
+
+**Recommended folder structure for device desired state:**
+
+```
+/
+├── devices/
+│   ├── {device-id}/
+│   │   ├── applications/
+│   │   │   ├── app1-deployment.yaml
+│   │   │   ├── app2-deployment.yaml
+│   │   └── device-config.yaml
+│   └── {another-device-id}/
+│       ├── applications/
+│       └── device-config.yaml
+└── shared/
+    ├── policies/
+    └── templates/
+```
+
+**Example ApplicationDeployment YAML:**
 
 ```yaml
-apiVersion: margo.org/v1-alpha1
-kind: ApplicationDescription
+apiVersion: application.margo.org/v1alpha1
+kind: ApplicationDeployment
 metadata:
-  id: com-northstartida-digitron-orchestrator
-  name: Digitron orchestrator
-  description: The Digitron orchestrator application
-  version: 1.2.1
-  catalog:
-    application:
-      icon: ./resources/ndo-logo.png
-      tagline: Northstar Industrial Application's next-gen, AI driven, Digitron instrument orchestrator.
-      descriptionFile: ./resources/description.md
-      releaseNotes: ./resources/release-notes.md
-      licenseFile: ./resources/license.pdf
-      site: http://www.northstar-ida.com
-      tags: ["optimization", "instrumentation"]
-    author:
-      - name: Roger Wilkershank
-        email: rpwilkershank@northstar-ida.com
-    organization:
-      - name: Northstar Industrial Applications
-        site: http://northstar-ida.com
-deploymentProfiles:
-  - type: helm.v3
+  annotations:
+    id: "a3e2f5dc-912e-494f-8395-52cf3769bc06"
+    applicationId: "com-northstartida-digitron-orchestrator"
+  name: digitron-orchestrator
+  namespace: default
+spec:
+  deploymentProfile:
+    type: helm.v3
     components:
-      - name: database-services
-        properties:
-          repository: oci://quay.io/charts/realtime-database-services
-          revision: 2.3.7
-          wait: true
-          timeout: 8m30s
       - name: digitron-orchestrator
         properties:
           repository: oci://northstarida.azurecr.io/charts/northstarida-digitron-orchestrator
           revision: 1.0.9
           wait: true
-  - type: compose
-    components:
-      - name: digitron-orchestrator-docker
-        properties:
-          packageLocation: https://northsitarida.com/digitron/docker/digitron-orchestrator.tar.gz
-          keyLocation: https://northsitarida.com/digitron/docker/public-key.asc
-parameters:
-  idpName:
-    targets:
-      - pointer: idp.name
-        components: ["
+  parameters:
+    idpName:
+      value: "Active Directory"
+      targets:
+        - pointer: idp.name
+          components: ["digitron-orchestrator"]
+    pollFrequency:
+      value: 30
+      targets:
+        - pointer: settings.pollFrequency
+          components: ["digitron-orchestrator"]
+```
+
+# Security Requirements
+
+## Authentication and Authorization
+
+All API communications MUST use bearer token authentication with proper certificate-based payload signing.
+
+### OAuth 2.0 Implementation
+
+**Token Request Example:**
+
+```bash
+curl -X POST \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "grant_type=client_credentials&client_id=device-client-12345&client_secret=super-secret-client-secret" \
+  https://fleet-manager.example.com/oauth/token
+```
+
+**Token Response:**
+
+```json
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "token_type": "Bearer",
+  "expires_in": 3600,
+  "scope": "device:read device:write deployment:read deployment:write"
+}
+```
+
+### Certificate-Based Payload Signing
+
+**Message Envelope Structure:**
+
+```json
+{
+  "payload": {
+    "apiVersion": "device.margo/v1",
+    "kind": "DeviceCapability",
+    "properties": {
+      "id": "device-123",
+      "vendor": "Example Corp"
+    }
+  },
+  "signature": "MEUCIQDxxx...",
+  "certificateId": "device-123-serial-number"
+}
+```
+
+**Payload Signing Process:**
+
+1. **Generate Hash**: Calculate SHA-256 hash of the JSON payload
+2. **Sign Hash**: Use device's private key to sign the hash
+3. **Encode Signature**: Base64 encode the signature
+4. **Create Envelope**: Wrap payload with signature and certificate ID
+
+**Verification Process:**
+
+1. **Extract Components**: Get payload, signature, and certificate ID from envelope
+2. **Retrieve Certificate**: Get public key using certificate ID
+3. **Verify Signature**: Decrypt signature using public key
+4. **Compare Hashes**: Verify payload hash matches decrypted signature
+
+## Device Security
+
+Devices MUST implement:
+- **TPM-based hardware security**: Trusted Platform Module for secure key storage
+- **Secure boot processes**: Verified boot chain with signed bootloaders
+- **Attestation mechanisms**: Hardware-based device identity verification
+- **Zero Trust Network Access (ZTNA)**: Never trust, always verify approach
+
+### TPM Requirements
+
+- **TPM 2.0 compliance**: All devices must include TPM 2.0 or later
+- **Key storage**: Private keys must be stored in TPM secure storage
+- **Attestation**: Device identity must be verifiable through TPM attestation
+- **Secure boot**: TPM must be used to verify boot integrity
+
+### Secure Boot Implementation
+
+```yaml
+# Example secure boot configuration
+secure_boot:
+  enabled: true
+  bootloader:
+    signed: true
+    verification_key: "/secure/bootloader.pub"
+  kernel:
+    signed: true
+    verification_key: "/secure/kernel.pub"
+  modules:
+    signature_verification: true
+```
+
+## Communication Security
+
+All communications between components MUST use:
+- **TLS 1.3 encryption**: Modern TLS for all network communications
+- **Certificate-based authentication**: Mutual TLS authentication
+- **Payload signing and verification**: Digital signatures for message integrity
+- **Industry-standard security protocols**: HTTPS, OAuth 2.0, X.509 certificates
+
+### TLS Configuration Requirements
+
+**Minimum TLS Requirements:**
+
+- TLS 1.3 for all new connections
+- TLS 1.2 acceptable for legacy support (with approved cipher suites)
+- Certificate validation must be enforced
+- Perfect Forward Secrecy (PFS) must be enabled
+
+**Approved Cipher Suites for TLS 1.3:**
+
+- TLS_AES_256_GCM_SHA384
+- TLS_CHACHA20_POLY1305_SHA256
+- TLS_AES_128_GCM_SHA256
+
+**Certificate Requirements:**
+
+- X.509 certificates with minimum 2048-bit RSA or 256-bit ECC
+- Certificate chain validation required
+- Certificate revocation checking (CRL or OCSP)
+- Certificates must be issued by approved Certificate Authorities
+
+### Network Security
+
+**Firewall Configuration:**
+
+```yaml
+# Example firewall rules for Margo devices
+firewall_rules:
+  inbound:
+    - port: 4317
+      protocol: TCP
+      source: workload_subnet
+      description: "OpenTelemetry gRPC"
+    - port: 4318
+      protocol: TCP
+      source: workload_subnet
+      description: "OpenTelemetry HTTP"
+    - port: 443
+      protocol: TCP
+      source: fleet_manager_subnet
+      description: "Fleet Manager API"
+  outbound:
+    - port: 443
+      protocol: TCP
+      destination: fleet_manager
+      description: "Fleet Manager Communication"
+    - port: 53
+      protocol: UDP
+      destination: dns_servers
+      description: "DNS Resolution"
+```
+
+**Zero Trust Network Access:**
+
+- No implicit trust based on network location
+- All communications must be authenticated and authorized
+- Continuous monitoring and verification of device identity
+- Micro-segmentation to limit lateral movement
+
+# Compliance and Conformance
+
+## Compliance Requirements
+
+To be Margo-compliant, implementations MUST:
+- Support all mandatory [API endpoints](#api-reference)
+- Implement required [security mechanisms](#security-requirements)
+- Pass compliance test suite validation
+- Support specified application packaging formats
+
+### Mandatory API Endpoints
+
+**Device Management APIs:**
+- `POST /device/{deviceId}/capabilities` - Device capability reporting
+- `PUT /device/{deviceId}/capabilities` - Device capability updates
+- `POST /device/{deviceId}/deployment/{deploymentId}/status` - Deployment status reporting
+
+**Onboarding APIs:**
+- `GET /onboarding/certificate` - Root CA certificate download
+- `POST /onboarding/device` - Device onboarding
+
+**Authentication APIs:**
+- `POST /oauth/token` - OAuth 2.0 token endpoint
+
+### Security Implementation Requirements
+
+**Authentication:**
+- OAuth 2.0 client credentials flow
+- Bearer token authentication
+- Certificate-based payload signing
+
+**Encryption:**
+- TLS 1.3 for all communications
+- Certificate validation enforcement
+- Perfect Forward Secrecy (PFS)
+
+**Device Security:**
+- TPM 2.0 support
+- Secure boot implementation
+- Hardware attestation capabilities
+
+## Conformance Testing
+
+The Margo compliance test suite validates:
+- API compatibility and correctness
+- Security implementation requirements
+- Application package handling
+- Device onboarding processes
+- Observability data collection
+
+### Test Categories
+
+**Functional Testing:**
+- API endpoint availability and response formats
+- Authentication and authorization flows
+- Application deployment workflows
+- Device capability reporting
+
+**Security Testing:**
+- Certificate validation and trust establishment
+- Payload signing and verification
+- TLS configuration and cipher suite support
+- OAuth 2.0 flow implementation
+
+**Interoperability Testing:**
+- Cross-vendor device and fleet manager compatibility
+- Application package format validation
+- OpenTelemetry data collection and export
+- GitOps repository interaction
+
+**Performance Testing:**
+- API response times under load
+- Memory and CPU usage during operations
+- Network bandwidth utilization
+- Concurrent deployment handling
+
+### Compliance Certification Process
+
+1. **Self-Assessment**: Vendors complete compliance checklist
+2. **Automated Testing**: Run official compliance test suite
+3. **Manual Review**: Expert review of complex scenarios
+4. **Certification**: Issue compliance certificate upon successful completion
+5. **Ongoing Monitoring**: Regular re-certification and updates
+
+## Compliance Checklist
+
+### Device Vendors
+
+**Hardware Requirements:**
+- [ ] TPM 2.0 support implemented
+- [ ] Secure boot capability enabled
+- [ ] Hardware attestation support
+- [ ] Required connectivity interfaces
+
+**Software Requirements:**
+- [ ] Margo-compliant management client installed
+- [ ] OpenTelemetry collector deployed and configured
+- [ ] Container runtime (Docker, Podman, or Kubernetes)
+- [ ] Policy agent implementation
+
+**API Implementation:**
+- [ ] Device capabilities API implemented
+- [ ] Deployment status API implemented
+- [ ] Onboarding API client implemented
+- [ ] Certificate-based payload signing
+
+### Fleet Manager Vendors
+
+**API Server Requirements:**
+- [ ] All mandatory API endpoints implemented
+- [ ] OAuth 2.0 authentication server
+- [ ] Certificate management and validation
+- [ ] GitOps repository management
+
+**Application Management:**
+- [ ] Application registry integration
+- [ ] Helm chart deployment support
+- [ ] Docker Compose deployment support
+- [ ] Parameter validation and injection
+
+**Device Management:**
+- [ ] Device onboarding workflow
+- [ ] Capability-based device selection
+- [ ] Deployment status monitoring
+- [ ] Observability data collection
+
+### Workload Suppliers
+
+**Application Packaging:**
+- [ ] Application description YAML format
+- [ ] Helm chart packaging (for Kubernetes targets)
+- [ ] Docker Compose packaging (for standalone targets)
+- [ ] Digital signature implementation
+
+**Configuration Management:**
+- [ ] Parameter definition and validation
+- [ ] Multi-deployment profile support
+- [ ] Schema validation implementation
+- [ ] Target component mapping
+
+**Observability:**
+- [ ] OpenTelemetry integration (optional but recommended)
+- [ ] OTLP data export configuration
+- [ ] Metrics, logs, and traces implementation
+- [ ] Environment variable consumption
+
+# Implementation Guidelines
+
+## Contributing to Margo
+
+### General Requirements
+
+Contributions to Margo are typically very welcome! However, when adding new enhancements, maintainers must make a trade-off between the added value and the added cost of maintenance. It is recommended to first create a new issue on Github before starting the actual implementation and wait for feedback from the maintainers.
+
+### Bug Fixes
+
+Bug and security fixes are always welcome and take the highest priority.
+
+### Contribution Checklist
+
+- Contributions to the Specification must be covered by a Corporate CLA or Individual CLA
+- Any code changes must be accompanied with automated tests
+- Add the required copyright header to each new file introduced if appropriate
+- Add `signed-off` to all commits to certify the "Developer's Certificate of Origin"
+- Structure your commits logically, in small steps
+- Base commits on top of latest `pre-draft` branch
+
+### Signing the CLA
+
+If you have not yet signed the Individual CLA, or your organization has not yet signed the Corporate CLA, the LFX EasyCLA bot will prompt you to follow the appropriate steps to authorize your contribution.
+
+### Developer's Certificate of Origin
+
+By making a contribution to this project, I certify that:
+
+(a) The contribution was created in whole or in part by me and I have the right to submit it under the open source license indicated in the file; or
+
+(b) The contribution is based upon previous work that, to the best of my knowledge, is covered under an appropriate open source license and I have the right under that license to submit that work with modifications, whether created in whole or in part by me, under the same open source license (unless I am permitted to submit under a different license), as indicated in the file; or
+
+(c) The contribution was provided directly to me by some other person who certified (a), (b) or (c) and I have not modified it.
+
+(d) I understand and agree that this project and the contribution are public and that a record of the contribution (including all personal information I submit with it, including my sign-off) is maintained indefinitely and may be redistributed consistent with this project or the open source license(s) involved.
+
+## Best Practices
+
+### Development Best Practices
+
+- **Implement comprehensive logging and monitoring**: Use structured logging with appropriate log levels
+- **Follow secure development practices**: Regular security reviews, vulnerability scanning, dependency updates
+- **Use industry-standard containerization technologies**: Docker, Kubernetes, Helm
+- **Implement proper error handling and recovery**: Graceful degradation and retry mechanisms
+- **Design for offline and intermittent connectivity scenarios**: Local caching, queue-based processing
+
+### Deployment Best Practices
+
+**GitOps Implementation:**
+- Use dedicated Git repositories for device configurations
+- Implement proper access controls and audit logging
+- Use signed commits for configuration changes
+- Implement configuration validation before deployment
+
+**Security Best Practices:**
+- Rotate certificates and credentials regularly
+- Implement network segmentation and firewall rules
+- Use least-privilege access principles
+- Monitor and audit all system activities
+
+**Monitoring and Observability:**
+- Implement comprehensive metrics collection
+- Set up alerting for critical system events
+- Use distributed tracing for complex workflows
+- Regular health checks and system diagnostics
+
+### Example Implementation Patterns
+
+**Device Registration Flow:**
+
+```python
+# Example device registration implementation
+class DeviceRegistration:
+    def __init__(self, fleet_manager_url, device_cert):
+        self.fleet_manager_url = fleet_manager_url
+        self.device_cert = device_cert
+        self.client = None
+        
+    async def register(self):
+        # Download root CA certificate
+        root_ca = await self.download_root_ca()
+        
+        # Create secure client
+        self.client = SecureClient(
+            base_url=self.fleet_manager_url,
+            client_cert=self.device_cert,
+            ca_cert=root_ca
+        )
+        
+        # Prepare device capabilities
+        capabilities = self.gather_device_capabilities()
+        
+        # Send onboarding request
+        response = await self.client.post('/onboarding/device', {
+            'apiVersion': 'onboarding.margo/v1',
+            'kind': 'DeviceOnboarding',
+            'deviceId': self.device_id,
+            'certificate': base64.b64encode(self.device_cert).decode(),
+            'capabilities': capabilities
+        })
+        
+        # Store credentials for future use
+        self.store_credentials(response)
+        
+        return response
+```
+
+**Application Deployment Monitoring:**
+
+```python
+# Example deployment monitoring implementation
+class DeploymentMonitor:
+    def __init__(self, device_client):
+        self.device_client = device_client
+        self.deployments = {}
+        
+    async def monitor_deployment(self, deployment_id):
+        """Monitor deployment status and report to fleet manager"""
+        deployment = self.deployments.get(deployment_id)
+        if not deployment:
+            return
+            
+        try:
+            # Check deployment status
+            status = await self.check_deployment_status(deployment)
+            
+            # Report status to fleet manager
+            await self.device_client.post(
+                f'/device/{self.device_id}/deployment/{deployment_id}/status',
+                {
+                    'apiVersion': 'deployment.margo/v1',
+                    'kind': 'DeploymentStatus',
+                    'deploymentId': deployment_id,
+                    'status': status,
+                    'components': deployment.components
+                }
+            )
+            
+        except Exception as e:
+            # Report failure
+            await self.report_deployment_failure(deployment_id, str(e))
+```
+
+## Documentation Generation Process
+
+Some of the resources being used in the Margo APIs are being manually specified using MarkDown files. In this case mkdocs is used to generate the documentation in HTML format.
+
+For others, the modeling language LinkML is being used to generate the documentation. In this case linkml is used to generate the MarkDown documents that are integrated with the above mentioned documents before mkdocs can generate the HTML documents.
+
+### Documentation Structure
+
+```
+docs/
+├── api/
+│   ├── device-api.md
+│   ├── onboarding-api.md
+│   └── application-api.md
+├── examples/
+│   ├── device-registration.md
+│   ├── application-deployment.md
+│   └── observability-setup.md
+├── security/
+│   ├── authentication.md
+│   ├── certificates.md
+│   └── best-practices.md
+└── compliance/
+    ├── testing.md
+    ├── certification.md
+    └── checklist.md
+```
+
+### Building Documentation
+
+```bash
+# Install dependencies
+pip install mkdocs mkdocs-material linkml
+
+# Generate API documentation from LinkML schemas
+linkml-docs generate --output docs/api/ schemas/
+
+# Build HTML documentation
+mkdocs build
+
+# Serve documentation locally
+mkdocs serve
+```
+
+---
+
+## Copyright and License
+
+Copyright © 2024 Margo
+
+This specification is licensed under [appropriate open source license].
+
+---
+
+**Disclaimer:** This is a work-in-progress draft specification. Do not attempt to implement this version or reference it as authoritative. The specification is subject to change without notice.
