@@ -59,6 +59,8 @@ The core deliverables for Margo address the mission to enable interoperability a
 
 Margo intends to create an open [interoperability](#terms-and-definitions) standard and ecosystem for the industrial edge, allowing [edge compute devices](#edge-compute-device), [workloads](#workload), and [fleet management](#fleet-management) software to be compatible and interoperable across manufacturers and software developers willing to adopt such standard.
 
+<img width="912" height="677" alt="image" src="https://github.com/user-attachments/assets/1a002916-4dc8-453b-a23c-af9bb47ad20d" />
+
 The envisioned system can be broken down into the following main components:
 
 ### Workloads
@@ -97,6 +99,8 @@ Margo device roles consist of three major layers:
 - **Margo Interface Layer**
 - **Platform Layer**
 - **Traditional Device Layer**
+
+<img width="678" height="430" alt="image" src="https://github.com/user-attachments/assets/6a0690c5-6dfb-43b9-b386-e54946fc057c" />
 
 Although Margo requires compliance towards its requirements, such as hosting the Margo management interface client, the device vendor has freedom to implement as they see fit. Complete details are available in the [Device Interoperability](#device-interoperability) section.
 
@@ -312,6 +316,25 @@ Another advantage of Margo's application description model is to enable [workloa
 
 To distribute one, or more, [workloads](#workload) they are wrapped in an [application package](#application-package) that is provided by the [workload supplier](#workload-supplier) who aims to provide it to Margo-compliant [edge compute devices](#edge-compute-device). Therefore, the [workload supplier](#workload-supplier) creates an application description YAML document containing information about the application and a reference on how to deploy the OCI-containerized [workloads](#workload) that make up the application. The [application package](#application-package) is made available in an [application registry](#application-registry) and the OCI artifacts are stored in a remote or [local registry](#local-registries).
 
+**Example workflow**
+
+The following diagram provides an example workflow showing one way a workload fleet manager might use the application description information:
+
+<img width="844" height="542" alt="image" src="https://github.com/user-attachments/assets/9612134e-4a7f-4c1c-a2af-91e71b64ac94" />
+
+- An end user visits an workload catalog of the Workload Fleet Manager Frontend.
+- This frontend requests all workloads from the Workload Fleet Manager.
+- Either: the Workload Fleet Manager requests all application descriptions from each known Application Registry.
+- Or: the Workload Fleet Manager maintains a cache of application descriptions and services the request from there.
+- The Workload Fleet Manager returns the retrieved documents of application descriptions to the frontend.
+- The frontend parses the metadata element of all received application description documents.
+- The frontend presents the parsed metadata in a UI to the end user.
+- The end user selects the workload to be installed.
+- The frontend parses the configuration element of the selected application description.
+- The frontend presents the parsed configuration to the user.
+- The end user fills out the configurable application parameters to be applied to the workload.
+- The frontend creates an ApplicationDeployment definition (from the ApplicationDescription and the filled out parameters) and sends it to the Workload Fleet Manager, which executes it as the desired state.
+
 ## Application Package Definition
 
 The [application package](#application-package) comprises the following elements:
@@ -322,10 +345,13 @@ The [application package](#application-package) comprises the following elements
 ## Package Structure
 
 ```
-/ # REQUIRED top-level directory
-└── application description # REQUIRED YAML document with 'kind' as 'ApplicationDescription'
-└── resources # OPTIONAL folder with application resources
+/                           # REQUIRED top-level directory 
+└── application description # REQUIRED a YAML document with element 'kind' as 'ApplicationDescription' stored in a file  (e.g., 'margo.yaml')
+└── resources               # OPTIONAL folder with application resources (e.g., icon, license file, release notes) that can be displayed in an application catalog
 ```
+
+> Note
+> Application catalogs or marketplaces are out of scope for Margo. The exact requirements of the marketing material shall be defined by the application marketplace beyond outlined mandatory content.
 
 ## Deployment Profiles
 
@@ -335,6 +361,12 @@ The deployment profiles specified in the application description SHALL be define
 - **For Compose devices:** Applications must be packaged as a tarball file containing the compose.yml file and any additional artifacts referenced by the Compose file. It is highly recommended to digitally sign this package. When digitally signing the package PGP encryption MUST be used.
 
 If either one cannot be implemented it MAY be omitted but Margo RECOMMENDS defining deployment profiles as both Helm chart AND Compose components to strengthen interoperability and applicability.
+
+> Investigation Needed: We plan to do a security review of this package definition later. During this review we will revisit the way the Compose tarball file should be > > > signed. We will also discuss how we should handle secure container registries that require a username and password.
+> 
+> Investigation Needed: We need to determine what impact, if any, using 3rd party helm charts has on being Margo compliant.
+> 
+> Investigation Needed: Missing in the current specification are ways to define the compatibility information (resources required to run, application dependencies) as well as required infrastructure services such as storage, message queues/bus, reverse proxy, or authentication/authorization/accounting.
 
 Note: A device running the application will only install the application using either Compose files or Helm Charts but not both.
 
@@ -460,6 +492,8 @@ The main goals of the management interface are:
 - Device Vendors are able to build devices that include the client side of the interface which enables workload management via all Margo compliant [fleet managers](#workload-fleet-manager)
 
 ## Workload Deployment Sequence
+
+<img width="904" height="568" alt="image" src="https://github.com/user-attachments/assets/fe8670e5-2f5f-418a-9d23-b0cffc0efec6" />
 
 The complete workload deployment sequence includes:
 
@@ -613,7 +647,15 @@ Within Margo, devices are represented by compute hardware that host Margo compli
 
 The promise the Margo specification provides Device vendors the following benefits:
 - By producing a Margo compliant device it is compatible with ALL Margo compliant [Fleet Managers](#workload-fleet-manager)
-- Device vendors have freedom of implementation regarding the specific components, i.e. oci container runtime, as long as the component provides the agreed upon functionality the Application Vendors expect
+- Device vendors have freedom of implementation regarding the specific components, i.e. oci container runtime, as long as the component provides the agreed upon functionality the Application Vendors expect.
+
+### Supported Device roles are shown below:
+
+- Standalone Cluster
+- Cluster Leader
+- Cluster Worker
+- Standalone Device
+> Note: Additional device roles will be introduced as the specification matures.
 
 ## Base Device Requirements
 
