@@ -28,7 +28,7 @@
 
 # Introduction
 
-The Margo Edge Interoperability Standard addresses the escalating complexity of managing heterogeneous edge computing environments in industrial automation. As manufacturing facilities increasingly deploy compute devices and applications from multiple vendors, organizations encounter significant challenges in lifecycle management, workload orchestration, and operational scalability. This specification establishes a comprehensive framework for seamless interoperability between edge devices, applications, and fleet management systems through standardized APIs, security protocols, and deployment mechanisms. By defining common approaches for application packaging, device onboarding, workload observability, and fleet management, Margo enables organizations to deploy, scale, and operate complex multi-vendor edge environments efficiently while reducing integration barriers and accelerating digital transformation initiatives.
+The Margo Edge Interoperability Standard addresses the escalating complexity of managing heterogeneous edge computing environments in industrial automation. As manufacturing facilities increasingly deploy compute devices and applications from multiple vendors, organizations encounter significant challenges in lifecycle management, workload orchestration, and operational scalability. This specification establishes a comprehensive framework for seamless interoperability between edge devices, applications, and fleet management systems through standardized APIs, security protocols, and deployment mechanisms. By defining common approaches for application packaging, device onboarding, workload observability, and fleet management, Margo enables organizations to deploy, scale, and operate complex multi-vendor edge environments efficiently while reducing integration barriers and accelerating digital transformation initiatives. This open standard, hosted by the Linux Foundation, provides the technical foundation for building interoperable industrial edge ecosystems that support current and future technological requirements.
 
 ## What is Margo?
 
@@ -811,7 +811,7 @@ The following telemetry data is collected using default configurations for recei
 | CPU | Usage Per CPU | Container | | X | | | |
 | CPU | Usage System | Container | | X | | | |
 | CPU | Usage Total | Container | | X | | X | |
-| CPU | Usage User Mode | Container | | X | | | |
+| CPU | Usage Use Mode | Container | | X | | | |
 | CPU | Utilization | Container, Kubernetes Node, Kubernetes Pod | | X | X | | X |
 | Disk | IO | Container, System | | X | | | X |
 | Disk | IO Read | Container | | X | | | |
@@ -864,7 +864,7 @@ The following telemetry data is collected using default configurations for recei
 | State | Active Jobs | Cron Job | X | | | | |
 | State | Current Scheduled Nodes | Daemonset | X | | | | |
 | State | Desired Scheduled Nodes | Daemonset | X | | | | |
-| State | Misscheduled Nodes | Daemonset | X | | | | |
+| State | Misscheduled Modes | Daemonset | X | | | | |
 | State | Ready Nodes | Daemonset | X | | | | |
 | State | Available | Deployment | X | | | | |
 | State | Desired | Deployment | X | | | | |
@@ -1354,6 +1354,18 @@ By making a contribution to this project, I certify that:
 - Use industry-standard containerization technologies
 - Implement proper error handling and recovery
 - Design for offline and intermittent connectivity scenarios
+
+## Specification Maintenance and Consistency
+
+### Recommendations for Multi-Platform Specification Management
+
+**1. Sync Missing Content**: The GitHub specification should include the detailed investigation notes, action items, and extended examples found on the website.
+
+**2. Maintain Consistency**: Ensure that schema definitions, API examples, and YAML structures match between both versions.
+
+**3. Add Website-Specific Content**: Consider adding the more detailed application description examples and extended schema validation rules found on the website to the GitHub specification.
+
+**4. Preserve Contextual Information**: The "Action:" and "Investigation Needed:" notes from the website provide valuable context about ongoing work and should be preserved in the GitHub version.
 
 ## Documentation Generation Process
 
