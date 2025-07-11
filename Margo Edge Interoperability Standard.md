@@ -32,7 +32,7 @@ The Margo Edge Interoperability Standard addresses the escalating complexity of 
 
 ## What is Margo?
 
-The Margo initiative represents an open collaboration between organizations and individuals sharing a unified vision: delivering edge interoperability for industrial automation ecosystems. Margo operates under the Linux Foundation's governance.
+The Margo initiative represents an open collaboration between organizations and individuals sharing a unified vision: delivering edge interoperability for industrial automation ecosystems. 
 
 ## Mission Statement
 
@@ -383,7 +383,9 @@ The following workflow demonstrates how [workload fleet managers](#workload-flee
 8. Frontends parse configuration elements from selected application descriptions
 9. Frontends present parsed configurations to users
 10. End users complete configurable application parameters for [workload](#workload) application
-11. Frontends create ApplicationDeployment definitions and transmit them to [Workload Fleet Managers](#workload-fleet-manager)
+11. Frontends create ApplicationDeployment definitions (from ApplicationDescriptions and completed parameters) and transmit them to [Workload Fleet Managers](#workload-fleet-manager) for desired state execution
+
+The Workload Orchestration Vendor reads application description files (`margo.yaml`) and presents user interfaces allowing specification of parameters available according to `margo.yaml`. End users then specify configuration parameters for [application packages](#application-package). The [application packages](#application-package) are then ready for installation processes.
 
 ## Application Registry Interaction
 
@@ -394,6 +396,14 @@ Connectivity between Workload Orchestration Software and [Application Registries
 Upon installation requests from end users, Workload Orchestration Vendors SHALL retrieve [application packages](#application-package) using git pull requests from [Application Registries](#application-registry).
 
 At minimum, Margo-compliant WOS SHALL provide methods for end users to manually configure connections between WOS and [application registries](#application-registry).
+
+> **Note:** This is required so as not to prohibit end users from being able to install any Margo-compliant application they wish, including applications developed by end users.
+
+The Workload Orchestration Vendor MAY provide enhanced user experience options such as pre-configuring application registries to monitor. These can include application registries from third-party application vendors or their own applications.
+
+> **Note:** The specifics of the installation process are still under discussion: this could be for example a GitOps based approach.
+
+During the installation process, containers referenced in application manifests (Helm Charts or Compose files) are retrieved from container/Helm registries.
 
 ### Secure Access to Application Packages
 
@@ -413,6 +423,13 @@ Compliant [workloads](#workload) MAY expose workload-specific observability data
 - [Workload suppliers](#workload-supplier) MAY choose observability frameworks other than OpenTelemetry, but frameworks MUST be self-contained within [workload](#workload) deployments
 - If alternative approaches are taken, [workload suppliers](#workload-supplier) should NOT publish observability data outside devices/clusters using methods other than OpenTelemetry collectors
 - If [workload suppliers](#workload-supplier) choose to export data without OpenTelemetry collectors, they MUST NOT do so without end user approval
+
+**How Workload Suppliers Can Publish Observability Data:**
+- Use OpenTelemetry SDKs for instrumentation in supported languages
+- Configure applications to send telemetry data to device-provided OpenTelemetry collectors
+- Ensure compatibility with standard OpenTelemetry protocols (OTLP)
+- Follow OpenTelemetry semantic conventions for consistent data structure
+- Test observability data collection across different deployment environments
 
 ## Local Registries
 
@@ -612,10 +629,17 @@ Device capability reporting ensures [Workload Fleet Management](#workload-fleet-
 
 Margo uses OpenGitOps approaches for managing [edge device](#edge-compute-device) desired states. Workload orchestration solution vendors maintain Git repositories under their control to push desired state updates for each managed device.
 
+> **Action:** The use of GitOps patterns for pulling desired state is still being discussed/investigated.
+
 ### Desired State Requirements
+
+> **Note:** Need to investigate best way to construct the Git Repository. Folder structure / Multiple applications per Edge Device/Cluster
+> **Note:** This is the recommendation from FluxCD https://fluxcd.io/flux/guides/repository-structure/
 
 - Workload orchestration solutions MUST store device desired state documents within Git repositories accessible to device management clients
 - Device management clients MUST monitor device Git repositories for desired state updates using URLs and access tokens provided by workload orchestration solutions during onboarding
+
+> **Note:** Git repository storage was selected to ensure secure storage and traceability pertaining to workload desired states.
 
 ### Workload Management Sequence of Operations
 
@@ -634,7 +658,9 @@ Margo uses OpenGitOps approaches for managing [edge device](#edge-compute-device
 Deployment status is transmitted to workload orchestration web services using [Device APIs](#device-api) when deployment state changes occur.
 
 **Deployment status rules:**
-- State is `Pending` once device management clients receive updated desired states but have not initiated application. When reporting this state, indicate reasons (such as waiting for policy agents or other applications)
+- State is `Pending` once device management clients receive updated desired states but have not initiated application. When reporting this state, indicate reasons such as:
+  - Waiting for policy agents
+  - Waiting for other applications in the 'Order of operations' to be completed
 - State is `Installing` once device management clients initiate desired state application processes
 - State is `Failure` if desired state application fails at any point. When reporting Failure states, error messages and error codes MUST be reported
 - State is `Success` once desired states are completely applied
@@ -1046,6 +1072,176 @@ spec:
 | applicationId | string | Y | Application identifiers. Must be lowercase letters and numbers and MAY contain dashes. MUST NOT exceed 200 characters |
 | id | string | Y | Unique identifier UUIDs of deployment specifications. Must be assigned by Workload Orchestration Software |
 
+> **Action:** This is incomplete and doesn't contain the details for the deploymentProfile or parameters
+
+> **Action:** We are currently investigating the best way to interface with source control infrastructure
+
+### Complete Application Deployment Examples
+
+#### Example 1: Cluster Enabled Application Deployment Specification
+
+```yaml
+apiVersion: application.margo.org/v1alpha1
+kind: ApplicationDeployment
+metadata:
+  annotations:
+    applicationId: com-northstartida-digitron-orchestrator
+    id: a3e2f5dc-912e-494f-8395-52cf3769bc06
+  name: com-northstartida-digitron-orchestrator-deployment
+  namespace: margo-poc
+spec:
+  deploymentProfile:
+    type: helm.v3
+    components:
+      - name: database-services
+        properties:
+          repository: oci://quay.io/charts/realtime-database-services
+          revision: 2.3.7
+          timeout: 8m30s
+          wait: "true"
+      - name: digitron-orchestrator
+        properties:
+          repository: oci://northstarida.azurecr.io/charts/northstarida-digitron-orchestrator
+          revision: 1.0.9
+          wait: "true"
+  parameters:
+    adminName:
+      value: Some One
+      targets:
+        - pointer: administrator.name
+          components:
+            - digitron-orchestrator
+    adminPrincipalName:
+      value: someone@somewhere.com
+      targets:
+        - pointer: administrator.userPrincipalName
+          components:
+            - digitron-orchestrator
+    cpuLimit:
+      value: "4"
+      targets:
+        - pointer: settings.limits.cpu
+          components:
+            - digitron-orchestrator
+    idpClientId:
+      value: 123-ABC
+      targets:
+        - pointer: idp.clientId
+          components:
+            - digitron-orchestrator
+    idpName:
+      value: Azure AD
+      targets:
+        - pointer: idp.name
+          components:
+            - digitron-orchestrator
+    idpProvider:
+      value: aad
+      targets:
+        - pointer: idp.provider
+          components:
+            - digitron-orchestrator
+    idpUrl:
+      value: https://123-abc.com
+      targets:
+        - pointer: idp.providerUrl
+          components:
+            - digitron-orchestrator
+        - pointer: idp.providerMetadata
+          components:
+            - digitron-orchestrator
+    memoryLimit:
+      value: "16384"
+      targets:
+        - pointer: settings.limits.memory
+          components:
+            - digitron-orchestrator
+    pollFrequency:
+      value: "120"
+      targets:
+        - pointer: settings.pollFrequency
+          components:
+            - digitron-orchestrator
+            - database-services
+    siteId:
+      value: SID-123-ABC
+      targets:
+        - pointer: settings.siteId
+          components:
+            - digitron-orchestrator
+            - database-services
+```
+
+#### Example 2: Standalone Device Application Deployment Specification
+
+```yaml
+apiVersion: application.margo.org/v1alpha1
+kind: ApplicationDeployment
+metadata:
+  annotations:
+    applicationId: com-northstartida-digitron-orchestrator
+    id: ad9b614e-8912-45f4-a523-372358765def
+  name: com-northstartida-digitron-orchestrator-deployment
+  namespace: margo-poc
+spec:
+  deploymentProfile:
+    type: compose
+    components:
+      - name: digitron-orchestrator-docker
+        properties:
+          keyLocation: https://northsitarida.com/digitron/docker/public-key.asc
+          packageLocation: https://northsitarida.com/digitron/docker/digitron-orchestrator.tar.gz
+  parameters:
+    adminName:
+      value: Some One
+      targets:
+        - pointer: ENV.ADMIN_NAME
+          components:
+            - digitron-orchestrator-docker
+    adminPrincipalName:
+      value: someone@somewhere.com
+      targets:
+        - pointer: ENV.ADMIN_PRINCIPALNAME
+          components:
+            - digitron-orchestrator-docker
+    idpClientId:
+      value: 123-ABC
+      targets:
+        - pointer: ENV.IDP_CLIENT_ID
+          components:
+            - digitron-orchestrator-docker
+    idpName:
+      value: Azure AD
+      targets:
+        - pointer: ENV.IDP_NAME
+          components:
+            - digitron-orchestrator-docker
+    idpProvider:
+      value: aad
+      targets:
+        - pointer: ENV.IDP_PROVIDER
+          components:
+            - digitron-orchestrator-docker
+    idpUrl:
+      value: https://123-abc.com
+      targets:
+        - pointer: ENV.IDP_URL
+          components:
+            - digitron-orchestrator-docker
+    pollFrequency:
+      value: "120"
+      targets:
+        - pointer: ENV.POLL_FREQUENCY
+          components:
+            - digitron-orchestrator-docker
+    siteId:
+      value: SID-123-ABC
+      targets:
+        - pointer: ENV.SITE_ID
+          components:
+            - digitron-orchestrator-docker
+```
+
 ### Application Package API - Application Description
 
 Application descriptions present applications, e.g., on [application catalogs](#application-catalog) or [marketplaces](#workload-marketplace) from which end users select applications for installation.
@@ -1066,10 +1262,44 @@ Application descriptions present applications, e.g., on [application catalogs](#
 | Attribute | Type | Required? | Description |
 |-----------|------|-----------|-------------|
 | id | string | Y | Application identifiers. Must be lowercase letters and numbers and MAY contain dashes. MUST NOT exceed 200 characters |
-| name | string | Y | Application official names for display purposes |
+| name | string | Y | Application official names for display purposes. Can contain whitespace and special characters |
 | description | string | N | Application descriptions |
 | version | string | Y | Application versions |
 | catalog | Catalog | Y | Catalog elements specifying application catalog details |
+
+**Catalog Attributes:**
+
+| Attribute | Type | Required? | Description |
+|-----------|------|-----------|-------------|
+| application | ApplicationMetadata | N | Application elements specifying application-specific metadata |
+| author | []Author | N | Information about application authors |
+| organization | []Organization | N | Information about providing organizations |
+
+**ApplicationMetadata Attributes:**
+
+| Attribute | Type | Required? | Description |
+|-----------|------|-----------|-------------|
+| descriptionFile | string | N | Links to files containing application full descriptions. Files should be markdown files |
+| icon | string | N | Links to icon files (e.g., PNG format) |
+| licenseFile | string | N | Links to files detailing application licenses. Files should be plain text, markdown, or PDF files |
+| releaseNotes | string | N | Statements about changes for application releases. Files should be markdown or PDF files |
+| site | string | N | Links to application websites |
+| tagline | string | N | Application slogans |
+| tags | []string | N | Arrays of strings providing additional context for applications in user interfaces to assist with categorizing, searching, etc. |
+
+**Author Attributes:**
+
+| Attribute | Type | Required? | Description |
+|-----------|------|-----------|-------------|
+| name | string | N | Names of application creators |
+| email | string | N | Email addresses of application creators |
+
+**Organization Attributes:**
+
+| Attribute | Type | Required? | Description |
+|-----------|------|-----------|-------------|
+| name | string | Y | Organizations responsible for application development and distribution |
+| site | string | N | Links to organization websites |
 
 **DeploymentProfile Attributes:**
 
@@ -1082,8 +1312,91 @@ Application descriptions present applications, e.g., on [application catalogs](#
 
 | Attribute | Type | Required? | Description |
 |-----------|------|-----------|-------------|
-| name | string | Y | Unique names used to identify component packages. Must be lowercase letters and numbers and MAY contain dashes |
+| name | string | Y | Unique names used to identify component packages. For Helm installations, names are used as chart names. Must be lowercase letters and numbers and MAY contain dashes |
 | properties | ComponentProperties | Y | Dictionary elements specifying component package deployment details |
+
+**Parameter Attributes:**
+
+| Attribute | Type | Required? | Description |
+|-----------|------|-----------|-------------|
+| name | string | Y | Names of parameters |
+| value | various | N | Parameter default values. Accepted data types: string, integer, double, boolean, array[string], array[integer], array[double], array[boolean] |
+| targets | []Target | Y | Used to indicate which components values should be applied to when installing or updating applications |
+
+**Target Attributes:**
+
+| Attribute | Type | Required? | Description |
+|-----------|------|-----------|-------------|
+| pointer | string | Y | Names of parameters in deployment configurations. For Helm deployments, this is dot notation for matching elements in values.yaml files (same naming convention as --set command line argument with helm install). For Compose deployments, this is environment variable names to set |
+| components | []string | Y | Indicates which deployment profile components parameter targets apply to. Component names specified here MUST match component names in deployment profiles |
+
+**Configuration Attributes:**
+
+| Attribute | Type | Required? | Description |
+|-----------|------|-----------|-------------|
+| sections | []Section | Y | Sections group related parameters together, enabling user interfaces with logical parameter groupings in each section |
+
+**Section Attributes:**
+
+| Attribute | Type | Required? | Description |
+|-----------|------|-----------|-------------|
+| name | string | Y | Section names. May be used in user interfaces to show groupings of associated parameters within sections |
+| settings | []Setting | Y | Settings provide instructions to workload orchestration software vendors for displaying parameters to users. Users MUST be able to provide values for all settings |
+
+**Setting Attributes:**
+
+| Attribute | Type | Required? | Description |
+|-----------|------|-----------|-------------|
+| parameter | string | Y | Names of parameters referenced in parameter definitions |
+| name | string | Y | Display names for parameters in user interfaces |
+| description | string | N | Parameter descriptions for user interfaces |
+| schema | string | Y | Names of schema rules for parameter validation |
+| immutable | bool | N | If true, indicates values cannot be changed after initial installation |
+
+**Schema Attributes:**
+
+| Attribute | Type | Required? | Description |
+|-----------|------|-----------|-------------|
+| name | string | Y | Schema rule names referenced in setting definitions |
+| dataType | string | Y | Parameter data types (string, integer, double, boolean) |
+| allowEmpty | bool | N | If false, indicates values must be provided. Default is false |
+
+**TextValidationSchema Attributes (extends Schema):**
+
+| Attribute | Type | Required? | Description |
+|-----------|------|-----------|-------------|
+| minLength | integer | N | Minimum number of characters values must have to be valid |
+| maxLength | integer | N | Maximum number of characters values must have to be valid |
+| regexMatch | string | N | Regular expressions for value validation |
+
+**BooleanValidationSchema Attributes (extends Schema):**
+
+| Attribute | Type | Required? | Description |
+|-----------|------|-----------|-------------|
+| allowEmpty | bool | N | If false, indicates values must be provided. Default is false |
+
+**NumericIntegerValidationSchema Attributes (extends Schema):**
+
+| Attribute | Type | Required? | Description |
+|-----------|------|-----------|-------------|
+| minValue | integer | N | Minimum allowed integer values |
+| maxValue | integer | N | Maximum allowed integer values |
+
+**NumericDoubleValidationSchema Attributes (extends Schema):**
+
+| Attribute | Type | Required? | Description |
+|-----------|------|-----------|-------------|
+| minValue | float | N | Minimum allowed values |
+| maxValue | float | N | Maximum allowed values |
+| minPrecision | integer | N | Minimum precision levels values must have to be valid |
+| maxPrecision | integer | N | Maximum precision levels values must have to be valid |
+
+**SelectValidationSchema Attributes (extends Schema):**
+
+| Attribute | Type | Required? | Description |
+|-----------|------|-----------|-------------|
+| multiselect | bool | N | If true, indicates multiple values can be selected. If multiple values are selected, resulting values are arrays of selected values. Default is false |
+| options | []string | Y | Lists of acceptable options users can select from. Data types for each option must match parameter setting data types |
 
 **ComponentProperties for helm.v3:**
 
@@ -1091,17 +1404,282 @@ Application descriptions present applications, e.g., on [application catalogs](#
 |-----------|------|-----------|-------------|
 | repository | string | Y | URLs indicating Helm chart locations |
 | revision | string | Y | Helm chart full versions |
-| wait | bool | N | If True, indicates devices MUST wait until Helm charts finish installing before installing next Helm charts |
-| timeout | string | N | Time to wait for component installation completion. Format is "##m##s" |
+| wait | bool | N | If True, indicates devices MUST wait until Helm charts finish installing before installing next Helm charts. Default is True. Workload Fleet Management Client MUST support True and MAY support False. Only applies if multiple helm.v3 components are provided. |
+| timeout | string | N | Time to wait for component installation completion. If installation does not complete before timeout occurs, the installation process fails. Format is "##m##s" indicating total number of minutes and seconds to wait. |
 
 **ComponentProperties for compose:**
 
 | Attribute | Type | Required? | Description |
 |-----------|------|-----------|-------------|
 | packageLocation | string | Y | URLs indicating Compose package locations |
-| keyLocation | string | N | Public keys used to validate digitally signed packages. When signing packages, PGP MUST be used |
-| wait | bool | N | If True, indicates devices MUST wait until Compose files finish starting up |
-| timeout | string | N | Time to wait for component installation completion |
+| keyLocation | string | N | Public keys used to validate digitally signed packages. It is highly recommended to digitally sign packages. When signing packages, PGP MUST be used |
+| wait | bool | N | If True, indicates devices MUST wait until Compose files finish starting up before starting next Compose files. Default is True. Workload Fleet Management Client MUST support True and MAY support False. Only applies if multiple compose components are provided. |
+| timeout | string | N | Time to wait for component installation completion. If installation does not complete before timeout occurs, the installation process fails. Format is "##m##s" indicating total number of minutes and seconds to wait. |
+
+> **Investigation Needed:** We need to have more discussion about how Compose should be handled and what is required here.
+
+## Application Description Examples
+
+### Example 1: Simple Application Description
+
+A simple hello-world example of an ApplicationDescription:
+
+```yaml
+apiVersion: margo.org/v1-alpha1
+kind: ApplicationDescription
+metadata:
+  id: com-northstartida-hello-world
+  name: Hello World
+  description: A basic hello world application
+  version: "1.0"
+  catalog:
+    application:
+      icon: ./resources/hw-logo.png
+      tagline: Northstar Industrial Application's hello world application.
+      descriptionFile: ./resources/description.md
+      releaseNotes: ./resources/release-notes.md
+      licenseFile: ./resources/license.pdf
+      site: http://www.northstar-ida.com
+      tags: ["monitoring"]
+    author:
+      - name: Roger Wilkershank
+        email: rpwilkershank@northstar-ida.com
+    organization:
+      - name: Northstar Industrial Applications
+        site: http://northstar-ida.com
+deploymentProfiles:
+  - type: helm.v3
+    components:
+      - name: hello-world
+        properties:
+          repository: oci://northstarida.azurecr.io/charts/hello-world
+          revision: 1.0.1
+          wait: true
+parameters:
+  greeting:
+    value: Hello
+    targets:
+      - pointer: global.config.appGreeting
+        components: ["hello-world"]
+  greetingAddressee:
+    value: World
+    targets:
+      - pointer: global.config.appGreetingAddressee
+        components: ["hello-world"]
+configuration:
+  sections:
+    - name: General Settings
+      settings:
+        - parameter: greeting
+          name: Greeting
+          description: The greeting to use.
+          schema: requireText
+        - parameter: greetingAddressee
+          name: Greeting Addressee
+          description: The person, or group, the greeting addresses.
+          schema: requireText
+  schema:
+    - name: requireText
+      dataType: string
+      maxLength: 45
+      allowEmpty: false
+```
+
+### Example 2: Complex Application Description with Multiple Deployment Profiles
+
+An example ApplicationDescription defining deployment profiles for both Helm and Compose:
+
+```yaml
+apiVersion: margo.org/v1-alpha1
+kind: ApplicationDescription
+metadata:
+  id: com-northstartida-digitron-orchestrator
+  name: Digitron orchestrator
+  description: The Digitron orchestrator application
+  version: 1.2.1
+  catalog:
+    application:
+      icon: ./resources/ndo-logo.png
+      tagline: Northstar Industrial Application's next-gen, AI driven, Digitron instrument orchestrator.
+      descriptionFile: ./resources/description.md
+      releaseNotes: ./resources/release-notes.md
+      licenseFile: ./resources/license.pdf
+      site: http://www.northstar-ida.com
+      tags: ["optimization", "instrumentation"]
+    author:
+      - name: Roger Wilkershank
+        email: rpwilkershank@northstar-ida.com
+    organization:
+      - name: Northstar Industrial Applications
+        site: http://northstar-ida.com
+deploymentProfiles:
+  - type: helm.v3
+    components:
+      - name: database-services
+        properties:
+          repository: oci://quay.io/charts/realtime-database-services
+          revision: 2.3.7
+          wait: true
+          timeout: 8m30s
+      - name: digitron-orchestrator
+        properties:
+          repository: oci://northstarida.azurecr.io/charts/northstarida-digitron-orchestrator
+          revision: 1.0.9
+          wait: true
+  - type: compose
+    components:
+      - name: digitron-orchestrator-docker
+        properties:
+          packageLocation: https://northsitarida.com/digitron/docker/digitron-orchestrator.tar.gz
+          keyLocation: https://northsitarida.com/digitron/docker/public-key.asc
+parameters:
+  idpName:
+    targets:
+      - pointer: idp.name
+        components: ["digitron-orchestrator"]
+      - pointer: ENV.IDP_NAME
+        components: ["digitron-orchestrator-docker"]
+  idpProvider:
+    targets:
+      - pointer: idp.provider
+        components: ["digitron-orchestrator"]
+      - pointer: ENV.IDP_PROVIDER
+        components: ["digitron-orchestrator-docker"]
+  idpClientId:
+    targets:
+      - pointer: idp.clientId
+        components: ["digitron-orchestrator"]
+      - pointer: ENV.IDP_CLIENT_ID
+        components: ["digitron-orchestrator-docker"]
+  idpUrl:
+    targets:
+      - pointer: idp.providerUrl
+        components: ["digitron-orchestrator"]
+      - pointer: idp.providerMetadata
+        components: ["digitron-orchestrator"]
+      - pointer: ENV.IDP_URL
+        components: ["digitron-orchestrator-docker"]
+  adminName:
+    targets:
+      - pointer: administrator.name
+        components: ["digitron-orchestrator"]
+      - pointer: ENV.ADMIN_NAME
+        components: ["digitron-orchestrator-docker"]
+  adminPrincipalName:
+    targets:
+      - pointer: administrator.userPrincipalName
+        components: ["digitron-orchestrator"]
+      - pointer: ENV.ADMIN_PRINCIPALNAME
+        components: ["digitron-orchestrator-docker"]
+  pollFrequency:
+    value: 30
+    targets:
+      - pointer: settings.pollFrequency
+        components: ["digitron-orchestrator", "database-services"]
+      - pointer: ENV.POLL_FREQUENCY
+        components: ["digitron-orchestrator-docker"]
+  siteId:
+    targets:
+      - pointer: settings.siteId
+        components: ["digitron-orchestrator", "database-services"]
+      - pointer: ENV.SITE_ID
+        components: ["digitron-orchestrator-docker"]
+  cpuLimit:
+    value: 1
+    targets:
+      - pointer: settings.limits.cpu
+        components: ["digitron-orchestrator"]
+  memoryLimit:
+    value: 16384
+    targets:
+      - pointer: settings.limits.memory
+        components: ["digitron-orchestrator"]
+configuration:
+  sections:
+    - name: General
+      settings:
+        - parameter: pollFrequency
+          name: Poll Frequency
+          description: How often the service polls for updated data in seconds
+          schema: pollRange
+        - parameter: siteId
+          name: Site Id
+          description: Special identifier for the site (optional)
+          schema: optionalText
+    - name: Identity Provider
+      settings:
+        - parameter: idpName
+          name: Name
+          description: The name of the Identity Provider to use
+          immutable: true
+          schema: requiredText
+        - parameter: idpProvider
+          name: Provider
+          description: Provider something something
+          immutable: true
+          schema: requiredText
+        - parameter: idpClientId
+          name: Client ID
+          description: The client id
+          immutable: true
+          schema: requiredText
+        - parameter: idpUrl
+          name: Provider URL
+          description: The url of the Identity Provider
+          immutable: true
+          schema: url
+    - name: Administrator
+      settings:
+        - parameter: adminName
+          name: Presentation Name
+          description: The presentation name of the administrator
+          schema: requiredText
+        - parameter: adminPrincipalName
+          name: Principal Name
+          description: The principal name of the administrator
+          schema: email
+    - name: Resource Limits
+      settings:
+        - parameter: cpuLimit
+          name: CPU Limit
+          description: Maximum number of CPU cores to allow the application to consume
+          schema: cpuRange
+        - parameter: memoryLimit
+          name: Memory Limit
+          description: Maximum number of memory to allow the application to consume
+          schema: memoryRange
+  schema:
+    - name: requiredText
+      dataType: string
+      maxLength: 45
+      allowEmpty: false
+    - name: email
+      dataType: string
+      allowEmpty: false
+      regexMatch: .*@[a-z0-9.-]*
+    - name: url
+      dataType: string
+      allowEmpty: false
+      regexMatch: ^(http(s):\/\/.)[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)$
+    - name: pollRange
+      dataType: integer
+      minValue: 30
+      maxValue: 360
+      allowEmpty: false
+    - name: optionalText
+      dataType: string
+      minLength: 5
+      allowEmpty: true
+    - name: cpuRange
+      dataType: double
+      minValue: 0.5
+      maxPrecision: 1
+      allowEmpty: false
+    - name: memoryRange
+      dataType: integer
+      minValue: 16384
+      allowEmpty: false
+```
 
 ## Device API
 
